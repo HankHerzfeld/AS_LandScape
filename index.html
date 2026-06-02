@@ -1,0 +1,2208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="LandscapeIQ">
+<meta name="theme-color" content="#2d6a4f">
+<title>LandscapeIQ — Precision Plot Analysis</title>
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ════════════════════════════════════════════════
+   LIGHT THEME — CSS VARIABLES
+   ════════════════════════════════════════════════ */
+:root {
+  /* Backgrounds */
+  --bg:          #f2f5f0;
+  --surface:     #ffffff;
+  --surface2:    #f7f9f6;
+  --surface3:    #eef1ec;
+
+  /* Borders */
+  --border:      #d4dcd0;
+  --border-light: #e6ebe4;
+
+  /* Brand greens */
+  --accent:      #2d6a4f;
+  --accent-mid:  #40916c;
+  --accent-light:#d8edd9;
+  --accent-glow: rgba(45,106,79,0.12);
+
+  /* Semantic */
+  --warn:        #b45309;
+  --warn-bg:     #fef3c7;
+  --danger:      #dc2626;
+  --danger-bg:   #fee2e2;
+  --blue:        #1d4ed8;
+  --blue-bg:     #dbeafe;
+
+  /* Text */
+  --text:        #1a2e1a;
+  --text-dim:    #4a6741;
+  --text-muted:  #8aab85;
+  --text-placeholder: #b0c4ab;
+
+  /* Shadows */
+  --shadow-sm:   0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:   0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg:   0 8px 24px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.06);
+
+  /* Layout */
+  --header-h:    52px;
+  --stepper-h:   46px;
+  --sidebar-w:   300px;
+  --radius:      8px;
+  --radius-sm:   5px;
+}
+
+/* ════════════════════════════════════════════════
+   RESET & BASE
+   ════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;          /* windowed — no page scroll */
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  /* Safe area insets for notched phones */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+           env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* ════════════════════════════════════════════════
+   HEADER
+   ════════════════════════════════════════════════ */
+header {
+  height: var(--header-h);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  z-index: 50;
+}
+
+.logo {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+.logo span { color: var(--accent); }
+
+.header-right { display: flex; align-items: center; gap: 10px; }
+
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  font-size: 10px;
+  color: var(--text-dim);
+  background: var(--surface2);
+}
+.status-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 2.5s infinite;
+}
+.status-dot.offline { background: var(--danger); animation: none; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+/* Install banner */
+#installBanner {
+  display: none;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 20px;
+  background: var(--accent-light);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--accent);
+}
+#installBanner.show { display: flex; }
+
+/* Sync badge */
+.sync-badge {
+  display: none;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: var(--warn-bg);
+  border: 1px solid #fcd34d;
+  font-size: 10px;
+  color: var(--warn);
+}
+.sync-badge.show { display: flex; }
+
+/* ════════════════════════════════════════════════
+   STEPPER
+   ════════════════════════════════════════════════ */
+.stepper {
+  height: var(--stepper-h);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+  gap: 0;
+}
+.stepper::-webkit-scrollbar { display: none; }
+
+.step {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 14px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: all .2s;
+  user-select: none;
+}
+.step:hover { color: var(--text-dim); background: var(--surface2); }
+.step.active { color: var(--accent); background: var(--accent-light); }
+.step.done { color: var(--accent-mid); }
+.step.done .step-num { background: var(--accent); color: #fff; border-color: var(--accent); }
+.step-num {
+  width: 20px; height: 20px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700;
+  background: var(--surface3); border: 1px solid var(--border);
+  flex-shrink: 0; transition: all .2s;
+}
+.step.active .step-num { background: var(--accent); color: #fff; border-color: var(--accent); }
+.step-sep { width: 24px; height: 1px; background: var(--border); flex-shrink: 0; }
+
+/* ════════════════════════════════════════════════
+   APP BODY — WINDOWED, FILLS REMAINING HEIGHT
+   ════════════════════════════════════════════════ */
+.app-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;   /* children scroll internally */
+  min-height: 0;      /* critical: flex children must shrink */
+}
+
+/* ════════════════════════════════════════════════
+   SIDEBAR
+   ════════════════════════════════════════════════ */
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
+
+/* Custom scrollbar */
+.sidebar-scroll::-webkit-scrollbar { width: 3px; }
+.sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+.sidebar-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.sidebar-section {
+  border-bottom: 1px solid var(--border-light);
+  padding: 14px;
+}
+
+.section-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.section-title::after { content: ''; flex: 1; height: 1px; background: var(--border-light); }
+
+/* ════════════════════════════════════════════════
+   INPUTS
+   ════════════════════════════════════════════════ */
+.field { margin-bottom: 9px; }
+.field label {
+  display: block;
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.field input, .field select, .field textarea {
+  width: 100%;
+  padding: 7px 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+  -webkit-appearance: none;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  border-color: var(--accent-mid);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.field input::placeholder { color: var(--text-placeholder); }
+.field select { cursor: pointer; }
+.field textarea { resize: vertical; min-height: 64px; line-height: 1.5; }
+
+input[type=range] {
+  width: 100%;
+  height: 4px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  background: var(--border);
+  border-radius: 2px;
+}
+
+/* ════════════════════════════════════════════════
+   CHECKBOXES
+   ════════════════════════════════════════════════ */
+.check-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 0; cursor: pointer;
+  font-size: 11px; color: var(--text-dim);
+  border-radius: var(--radius-sm);
+  transition: color .15s;
+}
+.check-row:hover { color: var(--text); }
+.check-row input[type=checkbox] {
+  accent-color: var(--accent);
+  width: 13px; height: 13px; cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ════════════════════════════════════════════════
+   TOGGLE SWITCH
+   ════════════════════════════════════════════════ */
+.layer-toggle { display: flex; align-items: center; gap: 8px; font-size: 11px; cursor: pointer; padding: 4px 0; }
+.toggle-switch {
+  width: 30px; height: 17px; border-radius: 9px;
+  background: var(--surface3); border: 1px solid var(--border);
+  position: relative; transition: all .2s; cursor: pointer; flex-shrink: 0;
+}
+.toggle-switch.on { background: var(--accent); border-color: var(--accent); }
+.toggle-switch::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 11px; height: 11px; border-radius: 50%;
+  background: var(--border); transition: all .2s;
+}
+.toggle-switch.on::after { left: 15px; background: #fff; }
+
+/* ════════════════════════════════════════════════
+   BUTTONS
+   ════════════════════════════════════════════════ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 8px 16px; border-radius: var(--radius-sm);
+  cursor: pointer; font-family: 'DM Mono', monospace;
+  font-size: 11px; font-weight: 500; letter-spacing: 0.04em;
+  border: none; transition: all .15s;
+  text-transform: uppercase; white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:active { transform: scale(0.97); }
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(45,106,79,0.3);
+}
+.btn-primary:hover { background: var(--accent-mid); box-shadow: 0 2px 8px rgba(45,106,79,0.35); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover { border-color: var(--accent-mid); color: var(--accent); background: var(--accent-light); }
+
+.btn-warn {
+  background: var(--warn-bg);
+  color: var(--warn);
+  border: 1px solid #fcd34d;
+}
+.btn-warn:hover { background: #fde68a; }
+
+.btn-danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid #fca5a5;
+}
+.btn-full { width: 100%; }
+.btn-sm { padding: 5px 10px; font-size: 10px; }
+.btn-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.mt8 { margin-top: 8px; }
+.mb8 { margin-bottom: 8px; }
+
+/* ════════════════════════════════════════════════
+   MAIN PANEL
+   ════════════════════════════════════════════════ */
+.main-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ── Draw Toolbar ── */
+.draw-toolbar {
+  flex-shrink: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.draw-tool {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); cursor: pointer;
+  font-size: 10px; color: var(--text-dim);
+  transition: all .15s; font-family: 'DM Mono', monospace;
+  text-transform: uppercase; background: var(--surface2);
+  -webkit-tap-highlight-color: transparent;
+}
+.draw-tool:hover { border-color: var(--accent-mid); color: var(--accent); }
+.draw-tool.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+.draw-sep { width: 1px; height: 22px; background: var(--border); flex-shrink: 0; }
+
+/* ── Map Wrapper ── */
+.map-wrapper {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #e8ede6;
+  min-height: 0;
+}
+#mapCanvas {
+  width: 100%; height: 100%;
+  display: block; cursor: crosshair;
+  touch-action: none;
+}
+
+/* Map tool overlay */
+.map-overlay {
+  position: absolute; top: 10px; right: 10px;
+  display: flex; flex-direction: column; gap: 6px; z-index: 10;
+}
+.map-tool-btn {
+  width: 34px; height: 34px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 15px;
+  transition: all .15s; color: var(--text-dim);
+  box-shadow: var(--shadow-sm);
+  -webkit-tap-highlight-color: transparent;
+}
+.map-tool-btn:hover, .map-tool-btn.active {
+  border-color: var(--accent); color: var(--accent); background: var(--accent-light);
+}
+
+.map-coords {
+  position: absolute; bottom: 10px; left: 10px;
+  background: rgba(255,255,255,0.9);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(4px);
+  padding: 5px 9px; border-radius: var(--radius-sm);
+  font-size: 10px; color: var(--text-dim);
+  box-shadow: var(--shadow-sm);
+}
+
+.map-legend {
+  position: absolute; bottom: 10px; right: 10px;
+  background: rgba(255,255,255,0.92);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(4px);
+  padding: 10px 12px; border-radius: var(--radius-sm);
+  font-size: 10px; min-width: 150px;
+  box-shadow: var(--shadow-sm);
+}
+.legend-title {
+  font-family: 'Syne', sans-serif; font-size: 10px;
+  font-weight: 700; margin-bottom: 7px; color: var(--text);
+  text-transform: uppercase; letter-spacing: .08em;
+}
+.legend-item { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; color: var(--text-dim); }
+.legend-swatch { width: 22px; height: 3px; border-radius: 2px; flex-shrink: 0; }
+
+/* Offline map banner */
+.offline-map-banner {
+  position: absolute; top: 10px; left: 10px;
+  background: var(--warn-bg);
+  border: 1px solid #fcd34d;
+  padding: 5px 10px; border-radius: var(--radius-sm);
+  font-size: 10px; color: var(--warn);
+  display: none;
+}
+.offline-map-banner.show { display: block; }
+
+/* ── Results Panel ── */
+.results-panel {
+  flex-shrink: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  max-height: 42%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: none;
+}
+.results-panel.visible { display: block; }
+.results-inner { padding: 14px; }
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.result-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.result-card.highlight {
+  border-color: var(--accent-mid);
+  background: var(--accent-light);
+}
+.result-label {
+  font-size: 9px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 3px;
+}
+.result-value {
+  font-family: 'Syne', sans-serif; font-size: 20px;
+  font-weight: 800; color: var(--accent);
+}
+.result-unit { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+
+/* Tabs */
+.tabs { display: flex; border-bottom: 1px solid var(--border); }
+.tab {
+  padding: 7px 14px; cursor: pointer; font-size: 11px;
+  color: var(--text-muted); border-bottom: 2px solid transparent;
+  transition: all .15s; text-transform: uppercase; letter-spacing: .04em;
+}
+.tab:hover { color: var(--text-dim); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Service table */
+.service-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.service-table th {
+  padding: 5px 10px; text-align: left;
+  color: var(--text-muted); font-size: 9px;
+  text-transform: uppercase; letter-spacing: .1em;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+.service-table td { padding: 7px 10px; border-bottom: 1px solid var(--border-light); }
+.service-table tr:last-child td { border-bottom: none; }
+.service-badge {
+  display: inline-flex; padding: 2px 8px; border-radius: 10px;
+  font-size: 9px; text-transform: uppercase; letter-spacing: .04em;
+  font-weight: 600;
+}
+.badge-green { background: var(--accent-light); color: var(--accent); border: 1px solid #a3d9a5; }
+.badge-blue  { background: var(--blue-bg); color: var(--blue); border: 1px solid #93c5fd; }
+.badge-warn  { background: var(--warn-bg); color: var(--warn); border: 1px solid #fcd34d; }
+
+/* ════════════════════════════════════════════════
+   CATALOGUE MODAL
+   ════════════════════════════════════════════════ */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.3);
+  backdrop-filter: blur(3px);
+  display: none; z-index: 200;
+  align-items: center; justify-content: center;
+  padding: 16px;
+}
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 760px; max-width: 100%;
+  max-height: 88vh;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+.modal-header {
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.modal-title { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; }
+.modal-body { flex: 1; overflow-y: auto; padding: 18px; }
+.catalogue-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+.cat-card {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px; cursor: pointer;
+  transition: all .2s;
+}
+.cat-card:hover { border-color: var(--accent-mid); box-shadow: var(--shadow-sm); background: var(--surface); }
+.cat-card.selected { border-color: var(--accent); background: var(--accent-light); }
+.cat-icon { font-size: 26px; margin-bottom: 6px; }
+.cat-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; margin-bottom: 3px; color: var(--text); }
+.cat-desc { font-size: 10px; color: var(--text-dim); line-height: 1.5; }
+.cat-meta { margin-top: 7px; display: flex; gap: 5px; flex-wrap: wrap; }
+.cat-tag {
+  font-size: 9px; padding: 2px 6px; border-radius: 3px;
+  background: var(--surface3); border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+/* ════════════════════════════════════════════════
+   UPLOAD ZONE
+   ════════════════════════════════════════════════ */
+.upload-zone {
+  border: 2px dashed var(--border); border-radius: var(--radius);
+  padding: 16px; text-align: center; cursor: pointer;
+  transition: all .2s; color: var(--text-muted);
+}
+.upload-zone:hover { border-color: var(--accent-mid); background: var(--accent-light); color: var(--accent); }
+.upload-icon { font-size: 22px; margin-bottom: 4px; }
+.upload-zone p { font-size: 11px; }
+
+/* ════════════════════════════════════════════════
+   NOTIFICATION TOAST
+   ════════════════════════════════════════════════ */
+.notif {
+  position: fixed; bottom: 20px; right: 20px;
+  background: var(--surface);
+  border: 1px solid var(--accent-mid);
+  padding: 9px 15px; border-radius: var(--radius);
+  font-size: 11px; z-index: 300;
+  display: none; box-shadow: var(--shadow-md);
+  color: var(--accent); max-width: 280px;
+}
+.notif.show { display: block; animation: notifIn .25s ease; }
+@keyframes notifIn { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ════════════════════════════════════════════════
+   MISC UTILITIES
+   ════════════════════════════════════════════════ */
+.tag {
+  display: inline-flex; align-items: center;
+  padding: 2px 7px; border-radius: 3px;
+  font-size: 10px; background: var(--surface3);
+  border: 1px solid var(--border); color: var(--text-dim);
+}
+.divider { height: 1px; background: var(--border-light); margin: 10px 0; }
+.flex-row { display: flex; align-items: center; gap: 8px; }
+.text-accent { color: var(--accent); }
+.text-warn   { color: var(--warn); }
+.text-dim    { color: var(--text-dim); }
+.text-muted  { color: var(--text-muted); }
+
+.loader {
+  display: inline-block; width: 13px; height: 13px;
+  border: 2px solid var(--border); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.progress-bar { height: 3px; background: var(--surface3); border-radius: 2px; overflow: hidden; margin-top: 5px; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-mid)); transition: width .4s ease; }
+
+#renderCanvas { width: 100%; border-radius: var(--radius-sm); display: none; border: 1px solid var(--border); }
+
+/* API Config section */
+.api-config {
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  font-size: 11px;
+}
+.api-config .api-label {
+  font-size: 9px; color: var(--text-muted); text-transform: uppercase;
+  letter-spacing: .08em; margin-bottom: 4px;
+}
+
+/* ════════════════════════════════════════════════
+   MOBILE — BOTTOM SHEET SIDEBAR (≤ 700px)
+   ════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+  :root { --sidebar-w: 100%; }
+
+  .app-body { flex-direction: column; }
+
+  .sidebar {
+    width: 100%;
+    height: 220px;
+    flex-shrink: 0;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    flex-direction: column;
+  }
+
+  .main-panel { flex: 1; min-height: 0; }
+
+  .results-grid { grid-template-columns: repeat(2,1fr); }
+  .catalogue-grid { grid-template-columns: repeat(2,1fr); }
+
+  .stepper { gap: 0; }
+  .step { padding: 6px 10px; font-size: 10px; }
+  .step-sep { width: 16px; }
+}
+
+/* ════════════════════════════════════════════════
+   API SYNC MODAL
+   ════════════════════════════════════════════════ */
+#apiModal .modal {
+  width: 480px;
+  max-width: 100%;
+}
+.api-status-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 0; border-bottom: 1px solid var(--border-light);
+  font-size: 11px;
+}
+.api-status-row:last-child { border-bottom: none; }
+.api-ok   { color: var(--accent); font-weight: 600; }
+.api-err  { color: var(--danger); font-weight: 600; }
+.api-wait { color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<!-- NOTIFICATION TOAST -->
+<div class="notif" id="notif"></div>
+
+<!-- INSTALL BANNER (shown when app is installable) -->
+<div id="installBanner">
+  <span>📲 Install LandscapeIQ as an app for offline use</span>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-primary btn-sm" id="installBtn">Install</button>
+    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('installBanner').classList.remove('show')">✕</button>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">Landscape<span>IQ</span></div>
+  <div class="header-right">
+    <div class="sync-badge" id="syncBadge">⏳ Syncing…</div>
+    <div class="status-pill" id="onlinePill">
+      <div class="status-dot" id="onlineDot"></div>
+      <span id="onlineLabel">Online</span>
+    </div>
+    <div class="status-pill" style="cursor:pointer" onclick="openApiModal()" title="API Settings">
+      <span>⚙</span><span id="coordPill">📍 —</span>
+    </div>
+  </div>
+</header>
+
+<!-- PHASE STEPPER -->
+<div class="stepper" id="stepper">
+  <div class="step active" data-step="0" onclick="goStep(0)"><div class="step-num">1</div> Plot Setup</div>
+  <div class="step-sep"></div>
+  <div class="step" data-step="1" onclick="goStep(1)"><div class="step-num">2</div> Map & Layers</div>
+  <div class="step-sep"></div>
+  <div class="step" data-step="2" onclick="goStep(2)"><div class="step-num">3</div> Field Verify</div>
+  <div class="step-sep"></div>
+  <div class="step" data-step="3" onclick="goStep(3)"><div class="step-num">4</div> Services</div>
+  <div class="step-sep"></div>
+  <div class="step" data-step="4" onclick="goStep(4)"><div class="step-num">5</div> Render & Plan</div>
+</div>
+
+<!-- APP BODY -->
+<div class="app-body">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-scroll">
+
+      <!-- ── STEP 0: Plot Setup ── -->
+      <div id="panel0">
+        <div class="sidebar-section">
+          <div class="section-title">📍 Location</div>
+          <div class="field">
+            <label>Address or Coordinates</label>
+            <input type="text" id="addressInput" placeholder="123 Maple St, Austin TX…" />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div class="field"><label>Lat</label><input type="text" id="latInput" placeholder="30.2672" /></div>
+            <div class="field"><label>Lng</label><input type="text" id="lngInput" placeholder="-97.7431" /></div>
+          </div>
+          <button class="btn btn-primary btn-full mt8" onclick="loadPlot()">▶ Load Plot</button>
+        </div>
+        <div class="sidebar-section">
+          <div class="section-title">📐 Parcel Data</div>
+          <div class="field"><label>Parcel / APN</label><input type="text" id="parcelInput" placeholder="0123-4567-0001" /></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div class="field"><label>Area (sq ft)</label><input type="number" id="platArea" placeholder="8500" /></div>
+            <div class="field"><label>Zoning</label>
+              <select>
+                <option>Residential R1</option><option>Residential R2</option>
+                <option>Commercial C1</option><option>HOA Managed</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div class="field"><label>Width (ft)</label><input type="number" id="lotW" placeholder="85" /></div>
+            <div class="field"><label>Depth (ft)</label><input type="number" id="lotD" placeholder="100" /></div>
+          </div>
+        </div>
+        <div class="sidebar-section">
+          <div class="section-title">🛰 Data Sources</div>
+          <label class="check-row"><input type="checkbox" id="useSatellite" checked> Satellite Imagery</label>
+          <label class="check-row"><input type="checkbox" id="useElev" checked> Elevation / Terrain</label>
+          <label class="check-row"><input type="checkbox" id="useObstacles" checked> Obstacle Detection</label>
+          <label class="check-row"><input type="checkbox" id="useBoundary" checked> Legal Boundaries</label>
+          <label class="check-row"><input type="checkbox" id="useLidar"> LiDAR (upload)</label>
+          <div id="lidarUpload" style="display:none;margin-top:7px">
+            <div class="upload-zone" onclick="document.getElementById('lidarFile').click()">
+              <div class="upload-icon">📡</div><p>Drop .las / .laz / .geotiff</p>
+            </div>
+            <input type="file" id="lidarFile" style="display:none" accept=".las,.laz,.tif,.tiff">
+          </div>
+          <label class="check-row mt8"><input type="checkbox" id="usePhoto"> Photo Overlay</label>
+          <div id="photoUpload" style="display:none;margin-top:7px">
+            <div class="upload-zone" onclick="document.getElementById('photoFile').click()">
+              <div class="upload-icon">📸</div><p>Drop aerial / ground photo</p>
+            </div>
+            <input type="file" id="photoFile" style="display:none" accept="image/*" onchange="handlePhotoUpload(event)">
+          </div>
+        </div>
+        <div class="sidebar-section">
+          <button class="btn btn-primary btn-full" onclick="goStep(1)">Next: Map & Layers →</button>
+        </div>
+      </div>
+
+      <!-- ── STEP 1: Map Layers ── -->
+      <div id="panel1" style="display:none">
+        <div class="sidebar-section">
+          <div class="section-title">🗺 Layer Controls</div>
+          <div class="layer-toggle" style="margin-bottom:8px"><div class="toggle-switch on" id="tSatellite" onclick="toggleLayer('satellite')"></div><span>Satellite Image</span></div>
+          <div class="layer-toggle" style="margin-bottom:8px"><div class="toggle-switch on" id="tElevation" onclick="toggleLayer('elevation')"></div><span>Elevation Heatmap</span></div>
+          <div class="layer-toggle" style="margin-bottom:8px"><div class="toggle-switch on" id="tObstacles" onclick="toggleLayer('obstacles')"></div><span>Obstacles</span></div>
+          <div class="layer-toggle" style="margin-bottom:8px"><div class="toggle-switch on" id="tBoundary" onclick="toggleLayer('boundary')"></div><span>Plot Boundary</span></div>
+          <div class="layer-toggle"><div class="toggle-switch" id="tLidar" onclick="toggleLayer('lidar')"></div><span>LiDAR Points</span></div>
+        </div>
+        <div class="sidebar-section">
+          <div class="section-title">📊 Elevation</div>
+          <div class="flex-row mb8"><span class="text-muted" style="font-size:11px">Min</span><span class="text-accent" id="elevMin">—</span></div>
+          <div class="flex-row mb8"><span class="text-muted" style="font-size:11px">Max</span><span class="text-accent" id="elevMax">—</span></div>
+          <div class="flex-row mb8"><span class="text-muted" style="font-size:11px">Slope</span><span class="text-accent" id="slopeGrade">—</span></div>
+          <div style="height:10px;border-radius:3px;background:linear-gradient(90deg,#4facfe,#52c41a,#faad14,#ff4d4f);margin-top:4px;opacity:.8"></div>
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text-muted);margin-top:2px"><span>Low</span><span>High</span></div>
+        </div>
+        <div class="sidebar-section">
+          <div class="section-title">🚧 Obstacles</div>
+          <div class="flex-row mb8"><span class="tag">🌳</span><span style="font-size:11px">Trees: <span class="text-accent" id="treeCount">0</span></span></div>
+          <div class="flex-row mb8"><span class="tag">🏠</span><span style="font-size:11px">Structures: <span class="text-accent" id="structCount">0</span></span></div>
+          <div class="flex-row mb8"><span class="tag">🪨</span><span style="font-size:11px">Hardscape: <span class="text-accent" id="hardCount">0</span></span></div>
+          <div class="flex-row"><span class="tag">💧</span><span style="font-size:11px">Water: <span class="text-accent" id="waterCount">0</span></span></div>
+        </div>
+        <div class="sidebar-section">
+          <div class="btn-group">
+            <button class="btn btn-ghost" onclick="goStep(0)" style="flex:1">← Back</button>
+            <button class="btn btn-primary" onclick="goStep(2)" style="flex:2">Field Verify →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STEP 2: Field Verify + Drawing ── -->
+      <div id="panel2" style="display:none">
+        <div class="sidebar-section">
+          <div class="section-title">✏ Drawing Mode</div>
+          <div class="field"><label>Active Color</label>
+            <select id="drawColorSel">
+              <option value="#2d6a4f">Green — Lawn Area</option>
+              <option value="#1d4ed8">Blue — Water Feature</option>
+              <option value="#b45309">Amber — Hardscape</option>
+              <option value="#dc2626">Red — Exclude Zone</option>
+              <option value="#7c3aed">Purple — Hedge Row</option>
+              <option value="#374151">Gray — Note</option>
+            </select>
+          </div>
+          <div class="field"><label>Stroke Width</label><input type="range" id="strokeWidth" min="1" max="10" value="3"></div>
+        </div>
+        <div class="sidebar-section">
+          <div class="section-title">📸 Field Photos</div>
+          <div class="upload-zone" onclick="document.getElementById('fieldPhoto').click()">
+            <div class="upload-icon">📷</div><p>Add field verification photo</p>
+          </div>
+          <input type="file" id="fieldPhoto" style="display:none" accept="image/*" onchange="handleFieldPhoto(event)">
+          <div id="fieldPhotoList" style="margin-top:7px;display:flex;flex-wrap:wrap;gap:4px"></div>
+        </div>
+        <div class="sidebar-section">
+          <div class="section-title">📝 Boundary Notes</div>
+          <div class="field">
+            <textarea id="boundaryNotes" rows="3" placeholder="e.g. NE corner has retaining wall, ~3ft offset…"></textarea>
+          </div>
+        </div>
+        <div class="sidebar-section">
+          <button class="btn btn-warn btn-full mb8" onclick="approveMap()">✔ Approve Map & Boundaries</button>
+          <button class="btn btn-ghost btn-full" onclick="goStep(1)">← Back</button>
+        </div>
+      </div>
+
+      <!-- ── STEP 3: Services ── -->
+      <div id="panel3" style="display:none">
+        <div class="sidebar-section">
+          <div class="section-title">⚙ Site Parameters</div>
+          <div class="field"><label>Grass Type</label>
+            <select id="grassType">
+              <option>St. Augustine</option><option>Bermuda</option>
+              <option>Zoysia</option><option>Fescue</option>
+              <option>Centipede</option><option>Kentucky Bluegrass</option>
+            </select>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div class="field"><label>Height (in)</label><input type="number" id="grassHeight" value="4" min="1" max="24"></div>
+            <div class="field"><label>Mower Width (in)</label><input type="number" id="mowerWidth" value="48" min="16" max="72"></div>
+          </div>
+          <div class="field"><label>Mower Speed</label>
+            <select id="mowerSpeed">
+              <option value="2">Walk-behind (2 mph)</option>
+              <option value="5" selected>Zero-turn (5 mph)</option>
+              <option value="8">Commercial (8 mph)</option>
+            </select>
+          </div>
+        </div>
+        <div class="sidebar-section">
+          <div class="section-title">🌿 Services</div>
+          <label class="check-row"><input type="checkbox" id="svcMow" checked> Mow</label>
+          <label class="check-row"><input type="checkbox" id="svcEdge" checked> Edge (perimeter)</label>
+          <label class="check-row"><input type="checkbox" id="svcHedge" checked> Hedge Trim</label>
+          <label class="check-row"><input type="checkbox" id="svcFertilize"> Fertilize</label>
+          <label class="check-row"><input type="checkbox" id="svcAerate"> Core Aerate</label>
+          <label class="check-row"><input type="checkbox" id="svcSeed"> Overseed</label>
+          <label class="check-row"><input type="checkbox" id="svcMulch"> Mulch Beds</label>
+          <label class="check-row"><input type="checkbox" id="svcIrrigate"> Irrigation Setup</label>
+          <label class="check-row"><input type="checkbox" id="svcLandscape"> Full Landscaping</label>
+        </div>
+        <div class="sidebar-section">
+          <button class="btn btn-primary btn-full mb8" onclick="calculateServices()">▶ Calculate Estimates</button>
+          <button class="btn btn-ghost btn-full" onclick="goStep(2)">← Back</button>
+        </div>
+      </div>
+
+      <!-- ── STEP 4: Render & Plan ── -->
+      <div id="panel4" style="display:none">
+        <div class="sidebar-section">
+          <div class="section-title">🎨 Render Options</div>
+          <div class="field"><label>Style</label>
+            <select id="renderStyle">
+              <option>Photorealistic</option><option>Aerial Blueprint</option>
+              <option>Watercolor Plan</option><option>3D Isometric</option>
+            </select>
+          </div>
+          <div class="field"><label>Season</label>
+            <select id="renderSeason">
+              <option>Spring (lush)</option><option>Summer (peak)</option>
+              <option>Fall (warm tones)</option><option>Winter (dormant)</option>
+            </select>
+          </div>
+          <div class="field"><label>Time of Day</label>
+            <select id="renderTime">
+              <option>Golden Hour</option><option>Midday</option>
+              <option>Dusk</option><option>Overcast</option>
+            </select>
+          </div>
+          <div id="renderSelections" style="font-size:11px;color:var(--text-muted);margin-bottom:8px;min-height:18px"></div>
+          <button class="btn btn-primary btn-full mb8" onclick="generateRender()">✦ Generate Render</button>
+        </div>
+        <div class="sidebar-section">
+          <div class="section-title">📦 Catalogue</div>
+          <div id="selectedItems" style="font-size:11px;color:var(--text-dim);margin-bottom:8px">No items selected</div>
+          <button class="btn btn-ghost btn-full" onclick="openCatalogue()">Browse Catalogue</button>
+        </div>
+        <div class="sidebar-section">
+          <div class="section-title">📤 Export & Sync</div>
+          <div class="btn-group">
+            <button class="btn btn-ghost btn-sm" onclick="exportPDF()">PDF</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportJSON()">JSON</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportImage()">Map</button>
+          </div>
+          <button class="btn btn-primary btn-full mt8" onclick="syncToAPI()">☁ Sync to Web</button>
+        </div>
+        <div class="sidebar-section">
+          <button class="btn btn-ghost btn-full" onclick="goStep(3)">← Back</button>
+        </div>
+      </div>
+
+    </div><!-- /sidebar-scroll -->
+  </div><!-- /sidebar -->
+
+  <!-- MAIN PANEL -->
+  <div class="main-panel">
+
+    <!-- Draw Toolbar (step 2 only) -->
+    <div class="draw-toolbar" id="drawToolbar" style="display:none">
+      <div class="draw-tool active" id="dt-select" onclick="setDrawTool('select')">⬡ Select</div>
+      <div class="draw-tool" id="dt-polygon" onclick="setDrawTool('polygon')">⬡ Polygon</div>
+      <div class="draw-tool" id="dt-line" onclick="setDrawTool('line')">╱ Line</div>
+      <div class="draw-tool" id="dt-rect" onclick="setDrawTool('rect')">▭ Rect</div>
+      <div class="draw-tool" id="dt-circle" onclick="setDrawTool('circle')">◯ Circle</div>
+      <div class="draw-tool" id="dt-freehand" onclick="setDrawTool('freehand')">✎ Freehand</div>
+      <div class="draw-tool" id="dt-eraser" onclick="setDrawTool('eraser')">⌫ Erase</div>
+      <div class="draw-sep"></div>
+      <button class="btn btn-ghost btn-sm" onclick="undoDraw()">↩ Undo</button>
+      <button class="btn btn-danger btn-sm" onclick="clearDrawings()">✕ Clear</button>
+    </div>
+
+    <!-- Map -->
+    <div class="map-wrapper">
+      <canvas id="mapCanvas"></canvas>
+
+      <div class="map-overlay">
+        <div class="map-tool-btn" onclick="zoom(1.2)" title="Zoom In">+</div>
+        <div class="map-tool-btn" onclick="zoom(0.8)" title="Zoom Out">−</div>
+        <div class="map-tool-btn" onclick="resetView()" title="Reset View">⌂</div>
+        <div class="map-tool-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</div>
+      </div>
+
+      <div class="map-coords" id="mapCoords">Lat: — | Lng: — | Elev: —</div>
+
+      <div class="offline-map-banner" id="offlineMapBanner">
+        📥 Offline — cached map data
+      </div>
+
+      <div class="map-legend" id="mapLegend">
+        <div class="legend-title">Layers</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#2d6a4f"></div><span>Plot Boundary</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#4facfe"></div><span>Elevation</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#dc2626"></div><span>Obstacles</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#b45309"></div><span>Hardscape</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#7c3aed"></div><span>User Drawing</span></div>
+      </div>
+    </div>
+
+    <!-- Results Panel -->
+    <div class="results-panel" id="resultsPanel">
+      <div class="results-inner">
+        <div class="results-grid" id="resultsGrid"></div>
+        <div class="tabs">
+          <div class="tab active" onclick="switchTab('services')">Service Estimates</div>
+          <div class="tab" onclick="switchTab('render')">Render Preview</div>
+          <div class="tab" onclick="switchTab('report')">Full Report</div>
+        </div>
+        <div id="tabServices" style="padding-top:10px">
+          <table class="service-table" id="serviceTable">
+            <thead><tr><th>Service</th><th>Area</th><th>Est. Time</th><th>Notes</th><th>Status</th></tr></thead>
+            <tbody id="serviceBody"></tbody>
+          </table>
+        </div>
+        <div id="tabRender" style="display:none;padding-top:10px">
+          <canvas id="renderCanvas"></canvas>
+          <div id="renderPlaceholder" style="padding:20px;text-align:center;color:var(--text-muted);font-size:11px">
+            ✦ Generate a render from the sidebar to preview your landscaping plan
+          </div>
+        </div>
+        <div id="tabReport" style="display:none;padding-top:10px">
+          <div id="reportContent" style="font-size:11px;line-height:2;color:var(--text-dim)">
+            Approve map boundaries and calculate services to generate full report.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-panel -->
+</div><!-- /app-body -->
+
+<!-- CATALOGUE MODAL -->
+<div class="modal-overlay" id="catalogueModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📦 Landscaping Catalogue</div>
+      <button class="btn btn-ghost btn-sm" onclick="closeCatalogue()">✕ Close</button>
+    </div>
+    <div class="modal-body">
+      <div class="tabs" id="catTabs" style="margin-bottom:14px">
+        <div class="tab active" onclick="filterCat('all')">All</div>
+        <div class="tab" onclick="filterCat('foliage')">🌿 Foliage</div>
+        <div class="tab" onclick="filterCat('trees')">🌳 Trees</div>
+        <div class="tab" onclick="filterCat('hardscape')">🪨 Hardscape</div>
+        <div class="tab" onclick="filterCat('waterworks')">💧 Water</div>
+        <div class="tab" onclick="filterCat('lighting')">💡 Lighting</div>
+      </div>
+      <div class="catalogue-grid" id="catalogueGrid"></div>
+    </div>
+    <div style="padding:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+      <div style="font-size:11px;color:var(--text-dim)"><span id="catSelCount">0</span> items selected</div>
+      <button class="btn btn-primary" onclick="confirmCatalogueSelection()">Add to Plan →</button>
+    </div>
+  </div>
+</div>
+
+<!-- API CONFIG MODAL -->
+<div class="modal-overlay" id="apiModal">
+  <div class="modal" style="width:480px">
+    <div class="modal-header">
+      <div class="modal-title">⚙ API & Sync Settings</div>
+      <button class="btn btn-ghost btn-sm" onclick="closeApiModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:11px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
+        Connect LandscapeIQ to your back-end API to sync plots, service estimates, and reports across devices. When offline, changes queue locally and sync automatically when connectivity is restored.
+      </p>
+      <div class="field"><label>API Base URL</label><input type="text" id="apiBaseUrl" placeholder="https://api.yourservice.com/v1" /></div>
+      <div class="field"><label>API Key</label><input type="password" id="apiKey" placeholder="sk-…" /></div>
+      <div class="field"><label>Organization / Team ID (optional)</label><input type="text" id="apiOrgId" placeholder="org_xxxxxx" /></div>
+      <div class="divider"></div>
+      <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;margin-bottom:10px">Connection Status</div>
+      <div id="apiStatusList">
+        <div class="api-status-row"><span>API Endpoint</span><span class="api-wait" id="apiStatEndpoint">Not configured</span></div>
+        <div class="api-status-row"><span>Authentication</span><span class="api-wait" id="apiStatAuth">—</span></div>
+        <div class="api-status-row"><span>Map Tile Cache</span><span class="api-wait" id="apiStatTiles">—</span></div>
+        <div class="api-status-row"><span>Offline Queue</span><span class="api-wait" id="apiStatQueue">0 pending</span></div>
+        <div class="api-status-row"><span>Last Sync</span><span class="api-wait" id="apiStatSync">Never</span></div>
+      </div>
+      <div class="divider"></div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="testApiConnection()" style="flex:1">Test Connection</button>
+        <button class="btn btn-ghost" onclick="downloadMapForOffline()" style="flex:1">📥 Download Map</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     JAVASCRIPT
+     ══════════════════════════════════════════════ -->
+<script>
+// ════════════════════════════════════════════════
+// PWA — SERVICE WORKER REGISTRATION
+// ════════════════════════════════════════════════
+let swRegistration = null;
+let deferredInstallPrompt = null;
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').then(reg => {
+    swRegistration = reg;
+    console.log('[PWA] SW registered:', reg.scope);
+  }).catch(err => console.warn('[PWA] SW failed:', err));
+}
+
+// Capture install prompt for banner
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  document.getElementById('installBanner').classList.add('show');
+});
+
+document.getElementById('installBtn')?.addEventListener('click', async () => {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  const { outcome } = await deferredInstallPrompt.userChoice;
+  if (outcome === 'accepted') document.getElementById('installBanner').classList.remove('show');
+  deferredInstallPrompt = null;
+});
+
+window.addEventListener('appinstalled', () => {
+  document.getElementById('installBanner').classList.remove('show');
+  notify('✓ LandscapeIQ installed as app');
+});
+
+// ════════════════════════════════════════════════
+// ONLINE / OFFLINE STATUS
+// ════════════════════════════════════════════════
+function updateOnlineStatus() {
+  const online = navigator.onLine;
+  const dot   = document.getElementById('onlineDot');
+  const label = document.getElementById('onlineLabel');
+  const banner = document.getElementById('offlineMapBanner');
+  dot.classList.toggle('offline', !online);
+  label.textContent = online ? 'Online' : 'Offline';
+  banner.classList.toggle('show', !online && state.mapLoaded);
+  if (online && pendingSyncs.length > 0) flushPendingSyncs();
+}
+window.addEventListener('online',  updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+updateOnlineStatus();
+
+// ════════════════════════════════════════════════
+// API SYNC ENGINE
+// ════════════════════════════════════════════════
+const API_CONFIG = { baseUrl: '', apiKey: '', orgId: '', lastSync: null };
+const pendingSyncs = [];
+let syncInProgress = false;
+
+function getApiHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${API_CONFIG.apiKey}`,
+    ...(API_CONFIG.orgId ? { 'X-Org-Id': API_CONFIG.orgId } : {})
+  };
+}
+
+async function apiRequest(path, method = 'GET', body = null) {
+  if (!API_CONFIG.baseUrl || !API_CONFIG.apiKey) throw new Error('API not configured');
+  const opts = { method, headers: getApiHeaders() };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(API_CONFIG.baseUrl + path, opts);
+  if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
+  return res.json();
+}
+
+async function syncToAPI() {
+  if (!API_CONFIG.baseUrl) { openApiModal(); notify('⚠ Configure your API endpoint first'); return; }
+  if (!state.plotData) { notify('Load a plot first'); return; }
+  if (!navigator.onLine) { queueSync('plot_save', buildSyncPayload()); notify('📥 Queued — will sync when online'); return; }
+
+  const badge = document.getElementById('syncBadge');
+  badge.classList.add('show');
+  badge.textContent = '⏳ Syncing…';
+
+  try {
+    const payload = buildSyncPayload();
+    await apiRequest('/plots', 'POST', payload);
+    API_CONFIG.lastSync = new Date().toISOString();
+    localStorage.setItem('liq_last_sync', API_CONFIG.lastSync);
+    badge.classList.remove('show');
+    notify('✓ Synced to web successfully');
+    updateApiStatus();
+  } catch (err) {
+    badge.classList.remove('show');
+    notify('⚠ Sync failed — queued for retry');
+    queueSync('plot_save', buildSyncPayload());
+  }
+}
+
+function buildSyncPayload() {
+  const pd = state.plotData;
+  return {
+    id: state.plotId || ('plot_' + Date.now()),
+    generated: new Date().toISOString(),
+    location: pd ? { lat: pd.lat, lng: pd.lng } : null,
+    plot: pd ? { platArea: pd.platArea, dimensions: { w: pd.w, d: pd.d } } : null,
+    services: state.services.services || [],
+    drawings: state.drawings.length,
+    catalogue: state.catalogueSelections.map(i => ({ name: i.name, cat: i.cat, price: i.price })),
+    notes: document.getElementById('boundaryNotes')?.value || '',
+    fieldPhotos: state.fieldPhotos.length,
+  };
+}
+
+function queueSync(type, payload) {
+  pendingSyncs.push({ type, payload, ts: Date.now() });
+  document.getElementById('apiStatQueue').textContent = pendingSyncs.length + ' pending';
+  // Request background sync if available
+  if (swRegistration && 'sync' in swRegistration) {
+    swRegistration.sync.register('landscapeiq-sync').catch(() => {});
+  }
+}
+
+async function flushPendingSyncs() {
+  if (syncInProgress || !pendingSyncs.length || !navigator.onLine) return;
+  syncInProgress = true;
+  const badge = document.getElementById('syncBadge');
+  badge.textContent = `⏳ Syncing ${pendingSyncs.length}…`;
+  badge.classList.add('show');
+
+  const remaining = [];
+  for (const item of [...pendingSyncs]) {
+    try {
+      if (item.type === 'plot_save') await apiRequest('/plots', 'POST', item.payload);
+      pendingSyncs.splice(pendingSyncs.indexOf(item), 1);
+    } catch {
+      remaining.push(item);
+    }
+  }
+  badge.classList.remove('show');
+  syncInProgress = false;
+  document.getElementById('apiStatQueue').textContent = pendingSyncs.length + ' pending';
+  if (remaining.length === 0) { API_CONFIG.lastSync = new Date().toISOString(); updateApiStatus(); }
+}
+
+async function testApiConnection() {
+  const url = document.getElementById('apiBaseUrl').value.trim();
+  const key  = document.getElementById('apiKey').value.trim();
+  const org  = document.getElementById('apiOrgId').value.trim();
+
+  if (!url) { document.getElementById('apiStatEndpoint').textContent = 'No URL entered'; return; }
+
+  API_CONFIG.baseUrl = url;
+  API_CONFIG.apiKey  = key;
+  API_CONFIG.orgId   = org;
+  localStorage.setItem('liq_api', JSON.stringify({ baseUrl: url, orgId: org }));
+
+  document.getElementById('apiStatEndpoint').textContent = 'Testing…';
+  document.getElementById('apiStatAuth').textContent = '…';
+
+  try {
+    await apiRequest('/health');
+    document.getElementById('apiStatEndpoint').innerHTML = '<span class="api-ok">✓ Connected</span>';
+    document.getElementById('apiStatAuth').innerHTML = key ? '<span class="api-ok">✓ Key accepted</span>' : '<span class="api-wait">No key</span>';
+    notify('✓ API connection successful');
+  } catch (err) {
+    document.getElementById('apiStatEndpoint').innerHTML = `<span class="api-err">✗ ${err.message}</span>`;
+    document.getElementById('apiStatAuth').innerHTML = '<span class="api-err">Failed</span>';
+    notify('⚠ API connection failed');
+  }
+}
+
+function updateApiStatus() {
+  document.getElementById('apiStatSync').textContent = API_CONFIG.lastSync
+    ? new Date(API_CONFIG.lastSync).toLocaleString()
+    : 'Never';
+  document.getElementById('apiStatQueue').textContent = pendingSyncs.length + ' pending';
+}
+
+async function downloadMapForOffline() {
+  if (!state.plotData) { notify('Load a plot first'); return; }
+  notify('📥 Caching map data for offline use…');
+  // The service worker will intercept future tile requests
+  // For this implementation, we serialize the current plot data to IndexedDB
+  try {
+    const db = await openLocalDB();
+    await dbSet(db, 'cached_plot', JSON.stringify(state.plotData));
+    await dbSet(db, 'cached_drawings', JSON.stringify(state.drawings));
+    notify('✓ Map data saved for offline use');
+  } catch (e) {
+    notify('⚠ Could not save offline data');
+  }
+}
+
+// ════════════════════════════════════════════════
+// LOCAL STORAGE / INDEXEDDB
+// ════════════════════════════════════════════════
+function openLocalDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('landscapeiq-data', 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('store');
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = reject;
+  });
+}
+function dbSet(db, key, value) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction('store', 'readwrite');
+    tx.objectStore('store').put(value, key);
+    tx.oncomplete = res; tx.onerror = rej;
+  });
+}
+function dbGet(db, key) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction('store', 'readonly');
+    const req = tx.objectStore('store').get(key);
+    req.onsuccess = () => res(req.result);
+    req.onerror = rej;
+  });
+}
+
+// Restore saved API config
+(function restoreConfig() {
+  try {
+    const saved = localStorage.getItem('liq_api');
+    if (saved) {
+      const cfg = JSON.parse(saved);
+      API_CONFIG.baseUrl = cfg.baseUrl || '';
+      API_CONFIG.orgId   = cfg.orgId || '';
+      if (document.getElementById('apiBaseUrl')) document.getElementById('apiBaseUrl').value = API_CONFIG.baseUrl;
+      if (document.getElementById('apiOrgId')) document.getElementById('apiOrgId').value = API_CONFIG.orgId;
+    }
+    API_CONFIG.lastSync = localStorage.getItem('liq_last_sync') || null;
+  } catch {}
+})();
+
+// ════════════════════════════════════════════════
+// APP STATE
+// ════════════════════════════════════════════════
+const state = {
+  step: 0,
+  mapLoaded: false,
+  mapApproved: false,
+  plotId: null,
+  layers: { satellite: true, elevation: true, obstacles: true, boundary: true, lidar: false },
+  drawTool: 'select',
+  drawings: [],
+  currentPoly: [],
+  isDrawing: false,
+  uploadedPhoto: null,
+  fieldPhotos: [],
+  plotData: null,
+  services: {},
+  catalogueSelections: [],
+  zoom: 1,
+  panX: 0,
+  panY: 0,
+  isDragging: false,
+  lastMouse: null,
+  obstacles: [],
+  elevData: null,
+};
+
+// ════════════════════════════════════════════════
+// CANVAS SETUP
+// ════════════════════════════════════════════════
+const canvas = document.getElementById('mapCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const wrapper = canvas.parentElement;
+  canvas.width  = wrapper.clientWidth;
+  canvas.height = wrapper.clientHeight;
+  draw();
+}
+window.addEventListener('resize', resizeCanvas);
+setTimeout(resizeCanvas, 100);
+
+// ════════════════════════════════════════════════
+// SYNTHETIC PLOT DATA GENERATOR
+// ════════════════════════════════════════════════
+function generatePlotData(lat, lng) {
+  const w = parseFloat(document.getElementById('lotW').value) || 85;
+  const d = parseFloat(document.getElementById('lotD').value) || 100;
+  const platArea = parseFloat(document.getElementById('platArea').value) || (w * d);
+
+  const cx = canvas.width / 2, cy = canvas.height / 2;
+  const scaleX = (canvas.width * 0.55) / w;
+  const scaleY = (canvas.height * 0.55) / d;
+  const sc = Math.min(scaleX, scaleY);
+
+  const boundary = [
+    { x: cx - w/2*sc + 10, y: cy - d/2*sc },
+    { x: cx + w/2*sc,      y: cy - d/2*sc + 5 },
+    { x: cx + w/2*sc - 8,  y: cy + d/2*sc },
+    { x: cx - w/2*sc,      y: cy + d/2*sc - 3 },
+  ];
+
+  const treeCount = Math.floor(Math.random()*5)+2;
+  const trees = [];
+  for (let i = 0; i < treeCount; i++) {
+    trees.push({
+      type: 'tree',
+      x: cx + (Math.random()-0.5)*w*0.7*sc,
+      y: cy + (Math.random()-0.5)*d*0.7*sc,
+      radius: 10 + Math.random()*20, label: '🌳'
+    });
+  }
+  const structures = [{ type:'structure', x:cx+5, y:cy+8, w:w*0.3*sc, h:d*0.35*sc, label:'House' }];
+  const hardscape  = [{ type:'path', points:[{x:cx+w*0.15*sc,y:cy+d*0.5*sc},{x:cx+w*0.15*sc,y:cy-d*0.05*sc}], label:'Driveway', width:12 }];
+
+  const elevGrid = [];
+  for (let r = 0; r < 16; r++) for (let c = 0; c < 16; c++) {
+    elevGrid.push({ r, c, elev: 650 + Math.sin(r/16*Math.PI)*15 + Math.cos(c/16*Math.PI)*8 + Math.random()*4-2 });
+  }
+  const elvVals = elevGrid.map(e => e.elev);
+  const elevMin = Math.min(...elvVals), elevMax = Math.max(...elvVals);
+
+  document.getElementById('elevMin').textContent   = elevMin.toFixed(1)+' ft';
+  document.getElementById('elevMax').textContent   = elevMax.toFixed(1)+' ft';
+  document.getElementById('slopeGrade').textContent = ((elevMax-elevMin)/d*100).toFixed(1)+'%';
+  document.getElementById('treeCount').textContent  = treeCount;
+  document.getElementById('structCount').textContent = '1';
+  document.getElementById('hardCount').textContent  = '1';
+  document.getElementById('waterCount').textContent = '0';
+
+  return { boundary, trees, structures, hardscape, elevGrid, elevMin, elevMax, cx, cy, sc, w, d, platArea, lat, lng };
+}
+
+// ════════════════════════════════════════════════
+// MAIN DRAW FUNCTION
+// ════════════════════════════════════════════════
+function draw() {
+  if (!canvas.width) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.translate(state.panX, state.panY);
+  ctx.scale(state.zoom, state.zoom);
+
+  const pd = state.plotData;
+  if (!pd) { drawGrid(); drawPlaceholder(); ctx.restore(); return; }
+
+  if (state.layers.satellite) drawSatelliteBase(pd);
+  if (state.layers.elevation) drawElevation(pd);
+  if (state.layers.boundary)  drawBoundary(pd);
+  if (state.layers.obstacles) drawObstacles(pd);
+  drawUserDrawings();
+  if (state.uploadedPhoto) drawPhotoOverlay();
+
+  ctx.restore();
+}
+
+function drawGrid() {
+  ctx.strokeStyle = 'rgba(160,180,150,0.25)';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x < canvas.width; x += 40)  { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
+  for (let y = 0; y < canvas.height; y += 40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
+}
+
+function drawPlaceholder() {
+  ctx.fillStyle = 'rgba(45,106,79,0.06)';
+  ctx.fillRect(canvas.width/2-190, canvas.height/2-52, 380, 104);
+  ctx.strokeStyle = 'rgba(45,106,79,0.2)';
+  ctx.lineWidth = 1; ctx.setLineDash([6,4]);
+  ctx.strokeRect(canvas.width/2-190, canvas.height/2-52, 380, 104);
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(45,106,79,0.65)';
+  ctx.font = '400 12px "DM Mono"'; ctx.textAlign = 'center';
+  ctx.fillText('Enter address and load plot to begin', canvas.width/2, canvas.height/2-6);
+  ctx.fillStyle = 'rgba(45,106,79,0.35)';
+  ctx.font = '400 10px "DM Mono"';
+  ctx.fillText('Satellite imagery, elevation, and boundary data will render here', canvas.width/2, canvas.height/2+16);
+}
+
+function drawSatelliteBase(pd) {
+  const { boundary } = pd;
+  ctx.save();
+  ctx.beginPath();
+  boundary.forEach((p,i) => i===0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y));
+  ctx.closePath(); ctx.clip();
+
+  // Light grass — consistent with light theme
+  const grd = ctx.createRadialGradient(pd.cx, pd.cy, 10, pd.cx, pd.cy, pd.w*pd.sc*0.8);
+  grd.addColorStop(0, '#c8ddb8');
+  grd.addColorStop(0.4, '#b4cc9e');
+  grd.addColorStop(0.8, '#a0bc8a');
+  grd.addColorStop(1, '#8caa74');
+  ctx.fillStyle = grd;
+  ctx.fillRect(pd.cx-pd.w*pd.sc, pd.cy-pd.d*pd.sc, pd.w*pd.sc*2, pd.d*pd.sc*2);
+
+  // Mow stripe texture
+  for (let y = pd.cy-pd.d*pd.sc*0.6; y < pd.cy+pd.d*pd.sc*0.6; y += 8) {
+    ctx.fillStyle = y%16<8 ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)';
+    ctx.fillRect(pd.cx-pd.w*pd.sc*0.6, y, pd.w*pd.sc*1.2, 8);
+  }
+
+  // House
+  pd.structures.forEach(s => {
+    ctx.fillStyle = '#d4c8b8'; ctx.fillRect(s.x-s.w/2, s.y-s.h/2, s.w, s.h);
+    ctx.strokeStyle = '#b8aa98'; ctx.lineWidth = 2;
+    ctx.strokeRect(s.x-s.w/2, s.y-s.h/2, s.w, s.h);
+    ctx.strokeStyle = '#a09080'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(s.x, s.y-s.h/2); ctx.lineTo(s.x, s.y+s.h/2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(s.x-s.w/2, s.y); ctx.lineTo(s.x+s.w/2, s.y); ctx.stroke();
+  });
+
+  // Driveway
+  pd.hardscape.forEach(h => {
+    if (h.type === 'path') {
+      ctx.strokeStyle = '#c0b8a8'; ctx.lineWidth = h.width;
+      ctx.lineCap = 'round'; ctx.beginPath();
+      h.points.forEach((p,i) => i===0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y));
+      ctx.stroke();
+    }
+  });
+
+  // Trees
+  pd.trees.forEach(t => {
+    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+    ctx.beginPath(); ctx.ellipse(t.x+5, t.y+7, t.radius*1.1, t.radius*0.65, 0.5, 0, Math.PI*2); ctx.fill();
+    const tg = ctx.createRadialGradient(t.x, t.y, 2, t.x, t.y, t.radius);
+    tg.addColorStop(0, '#5a9040'); tg.addColorStop(0.6, '#3d7028'); tg.addColorStop(1, '#2a5018');
+    ctx.fillStyle = tg;
+    ctx.beginPath(); ctx.arc(t.x, t.y, t.radius, 0, Math.PI*2); ctx.fill();
+  });
+
+  ctx.restore();
+}
+
+function drawElevation(pd) {
+  const { elevGrid, elevMin, elevMax, cx, cy, w, d, sc } = pd;
+  const cw = w*sc*1.2/16, ch = d*sc*1.2/16;
+  const ox = cx-w*sc*0.6, oy = cy-d*sc*0.6;
+  elevGrid.forEach(({r,c,elev}) => {
+    const t = (elev-elevMin)/(elevMax-elevMin||1);
+    ctx.fillStyle = elevColor(t, 0.28);
+    ctx.fillRect(ox+c*cw, oy+r*ch, cw+1, ch+1);
+  });
+}
+
+function elevColor(t, alpha) {
+  const r = t < 0.5 ? Math.floor(t*2*180) : 180;
+  const g = t > 0.5 ? Math.floor((1-t)*2*150+100) : Math.floor(t*2*100);
+  const b = t < 0.3 ? 180 : 0;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function drawBoundary(pd) {
+  const { boundary } = pd;
+  ctx.save();
+  ctx.beginPath();
+  boundary.forEach((p,i) => i===0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y));
+  ctx.closePath();
+  ctx.strokeStyle = '#2d6a4f'; ctx.lineWidth = 2.5; ctx.setLineDash([10,4]);
+  ctx.stroke(); ctx.setLineDash([]);
+  boundary.forEach(p => {
+    ctx.fillStyle = '#2d6a4f';
+    ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI*2); ctx.fill();
+  });
+  ctx.font = '400 10px "DM Mono"';
+  ctx.fillStyle = 'rgba(45,106,79,0.85)'; ctx.textAlign = 'center';
+  const { w, d } = pd;
+  ctx.fillText(`${w} ft`, pd.cx, boundary[0].y-12);
+  ctx.save(); ctx.translate(boundary[1].x+16, pd.cy);
+  ctx.rotate(Math.PI/2); ctx.fillText(`${d} ft`, 0, 0); ctx.restore();
+  ctx.restore();
+}
+
+function drawObstacles(pd) {
+  pd.trees.forEach(t => {
+    ctx.strokeStyle = 'rgba(220,38,38,0.6)'; ctx.lineWidth = 1.5;
+    ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.arc(t.x, t.y, t.radius+4, 0, Math.PI*2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font = '10px serif'; ctx.textAlign = 'center';
+    ctx.fillText('🌳', t.x, t.y+t.radius+14);
+  });
+}
+
+function drawUserDrawings() {
+  state.drawings.forEach(d => {
+    ctx.strokeStyle = d.color || '#7c3aed';
+    ctx.lineWidth = d.width || 3;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    if (d.type==='freehand' && d.points.length>1) {
+      ctx.beginPath(); ctx.moveTo(d.points[0].x, d.points[0].y);
+      d.points.forEach(p => ctx.lineTo(p.x,p.y)); ctx.stroke();
+    } else if (d.type==='polygon' && d.points.length>1) {
+      ctx.beginPath(); ctx.moveTo(d.points[0].x, d.points[0].y);
+      d.points.forEach(p => ctx.lineTo(p.x,p.y)); ctx.closePath();
+      const c = d.color; ctx.fillStyle = c+'22'; ctx.fill(); ctx.stroke();
+    } else if (d.type==='rect' && d.p1 && d.p2) {
+      ctx.strokeRect(d.p1.x, d.p1.y, d.p2.x-d.p1.x, d.p2.y-d.p1.y);
+    } else if (d.type==='circle' && d.center && d.radius) {
+      ctx.beginPath(); ctx.arc(d.center.x, d.center.y, d.radius, 0, Math.PI*2); ctx.stroke();
+    } else if (d.type==='line' && d.p1 && d.p2) {
+      ctx.beginPath(); ctx.moveTo(d.p1.x, d.p1.y); ctx.lineTo(d.p2.x, d.p2.y); ctx.stroke();
+    }
+  });
+
+  if (state.drawTool==='polygon' && state.currentPoly.length>0) {
+    ctx.strokeStyle = getDrawColor(); ctx.lineWidth = 2; ctx.setLineDash([5,3]);
+    ctx.beginPath(); ctx.moveTo(state.currentPoly[0].x, state.currentPoly[0].y);
+    state.currentPoly.forEach(p => ctx.lineTo(p.x,p.y)); ctx.stroke(); ctx.setLineDash([]);
+    state.currentPoly.forEach(p => {
+      ctx.fillStyle = getDrawColor(); ctx.beginPath(); ctx.arc(p.x,p.y,4,0,Math.PI*2); ctx.fill();
+    });
+  }
+}
+
+function drawPhotoOverlay() {
+  if (!state.uploadedPhoto || !state.plotData) return;
+  ctx.save(); ctx.globalAlpha = 0.42;
+  const { boundary } = state.plotData;
+  ctx.beginPath(); boundary.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+  ctx.closePath(); ctx.clip();
+  const bb = getBoundingBox(boundary);
+  ctx.drawImage(state.uploadedPhoto, bb.minX, bb.minY, bb.w, bb.h);
+  ctx.restore();
+}
+
+// ════════════════════════════════════════════════
+// CANVAS INTERACTIONS
+// ════════════════════════════════════════════════
+function getCanvasPos(e) {
+  const r = canvas.getBoundingClientRect();
+  const mx = (e.clientX ?? e.touches?.[0]?.clientX ?? 0) - r.left;
+  const my = (e.clientY ?? e.touches?.[0]?.clientY ?? 0) - r.top;
+  return { x: (mx - state.panX) / state.zoom, y: (my - state.panY) / state.zoom, raw:{x:mx,y:my} };
+}
+
+canvas.addEventListener('mousemove', e => {
+  const pos = getCanvasPos(e);
+  if (state.plotData) {
+    const lat = (state.plotData.lat||30.2672) + (pos.y-canvas.height/2)*0.0001;
+    const lng = (state.plotData.lng||-97.7431) + (pos.x-canvas.width/2)*0.0001;
+    const elev = getElevAtPos(pos);
+    document.getElementById('mapCoords').textContent = `Lat: ${lat.toFixed(5)} | Lng: ${lng.toFixed(5)} | Elev: ${elev} ft`;
+    document.getElementById('coordPill').textContent = `📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  }
+  if (state.isDragging && state.drawTool==='select') {
+    state.panX += e.clientX - state.lastMouse.x;
+    state.panY += e.clientY - state.lastMouse.y;
+    state.lastMouse = {x:e.clientX,y:e.clientY};
+    draw(); return;
+  }
+  if (state.isDrawing) {
+    if (state.drawTool==='freehand') { state.drawings[state.drawings.length-1].points.push(pos); }
+    else if (state.drawTool==='rect'   && state.currentP1) { state.drawings[state.drawings.length-1].p2 = pos; }
+    else if (state.drawTool==='circle' && state.currentP1) {
+      const dx=pos.x-state.currentP1.x, dy=pos.y-state.currentP1.y;
+      state.drawings[state.drawings.length-1].radius = Math.sqrt(dx*dx+dy*dy);
+    }
+    else if (state.drawTool==='line'   && state.currentP1) { state.drawings[state.drawings.length-1].p2 = pos; }
+    draw();
+  }
+});
+
+canvas.addEventListener('mousedown', e => {
+  const pos = getCanvasPos(e);
+  if (state.drawTool==='select') { state.isDragging=true; state.lastMouse={x:e.clientX,y:e.clientY}; return; }
+  if (state.drawTool==='freehand') { state.isDrawing=true; state.drawings.push({type:'freehand',points:[pos],color:getDrawColor(),width:getDrawWidth()}); }
+  else if (state.drawTool==='polygon') { state.currentPoly.push(pos); draw(); }
+  else if (state.drawTool==='rect')   { state.isDrawing=true; state.currentP1=pos; state.drawings.push({type:'rect',p1:pos,p2:pos,color:getDrawColor(),width:getDrawWidth()}); }
+  else if (state.drawTool==='circle') { state.isDrawing=true; state.currentP1=pos; state.drawings.push({type:'circle',center:pos,radius:0,color:getDrawColor(),width:getDrawWidth()}); }
+  else if (state.drawTool==='line')   { state.isDrawing=true; state.currentP1=pos; state.drawings.push({type:'line',p1:pos,p2:pos,color:getDrawColor(),width:getDrawWidth()}); }
+  else if (state.drawTool==='eraser') {
+    state.drawings = state.drawings.filter(d => !d.points?.some(p=>dist(p,pos)<20));
+    draw();
+  }
+});
+
+canvas.addEventListener('mouseup', () => { state.isDragging=false; state.isDrawing=false; state.currentP1=null; });
+canvas.addEventListener('dblclick', () => {
+  if (state.drawTool==='polygon' && state.currentPoly.length>2) {
+    state.drawings.push({type:'polygon',points:[...state.currentPoly],color:getDrawColor(),width:getDrawWidth()});
+    state.currentPoly=[]; draw();
+  }
+});
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const factor = e.deltaY < 0 ? 1.12 : 0.9;
+  const r = canvas.getBoundingClientRect();
+  state.panX = e.clientX - r.left - (e.clientX - r.left - state.panX)*factor;
+  state.panY = e.clientY - r.top  - (e.clientY - r.top  - state.panY)*factor;
+  state.zoom *= factor; draw();
+}, {passive:false});
+
+// Touch support
+let lastTouchDist = null;
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length===2) { lastTouchDist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY); return; }
+  canvas.dispatchEvent(new MouseEvent('mousedown', { clientX:e.touches[0].clientX, clientY:e.touches[0].clientY }));
+}, {passive:true});
+canvas.addEventListener('touchmove', e => {
+  if (e.touches.length===2) {
+    const d = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    if (lastTouchDist) { state.zoom *= d/lastTouchDist; draw(); }
+    lastTouchDist = d; return;
+  }
+  canvas.dispatchEvent(new MouseEvent('mousemove', { clientX:e.touches[0].clientX, clientY:e.touches[0].clientY }));
+}, {passive:true});
+canvas.addEventListener('touchend', () => {
+  lastTouchDist = null;
+  canvas.dispatchEvent(new MouseEvent('mouseup'));
+}, {passive:true});
+
+// Helpers
+function dist(a,b) { return Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2); }
+function getDrawColor() { return document.getElementById('drawColorSel').value; }
+function getDrawWidth() { return parseInt(document.getElementById('strokeWidth').value); }
+function getElevAtPos(pos) {
+  if (!state.plotData) return '—';
+  const {elevGrid,elevMin,elevMax,cx,cy,w,d,sc}=state.plotData;
+  const col=Math.floor((pos.x-cx+w*sc*0.6)/(w*sc*1.2)*16);
+  const row=Math.floor((pos.y-cy+d*sc*0.6)/(d*sc*1.2)*16);
+  const e=elevGrid.find(e=>e.r===row&&e.c===col);
+  return e?e.elev.toFixed(1):'—';
+}
+function getBoundingBox(pts) {
+  const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y);
+  const minX=Math.min(...xs), minY=Math.min(...ys);
+  return {minX,minY,w:Math.max(...xs)-minX,h:Math.max(...ys)-minY};
+}
+
+// ════════════════════════════════════════════════
+// STEP NAVIGATION
+// ════════════════════════════════════════════════
+function goStep(n) {
+  state.step = n;
+  for (let i=0; i<5; i++) {
+    const p = document.getElementById('panel'+i);
+    if (p) p.style.display = i===n?'block':'none';
+  }
+  document.querySelectorAll('.step').forEach(s => {
+    const sn = parseInt(s.dataset.step);
+    s.classList.toggle('active', sn===n);
+    s.classList.toggle('done', sn<n);
+  });
+  document.getElementById('drawToolbar').style.display = n===2?'flex':'none';
+  if (n>=3) document.getElementById('resultsPanel').classList.add('visible');
+}
+
+// ════════════════════════════════════════════════
+// LOAD PLOT
+// ════════════════════════════════════════════════
+function loadPlot() {
+  const lat = parseFloat(document.getElementById('latInput').value) || 30.2672;
+  const lng = parseFloat(document.getElementById('lngInput').value) || -97.7431;
+  notify('Loading plot data…');
+  setTimeout(() => {
+    state.plotData = generatePlotData(lat, lng);
+    state.plotId   = 'plot_' + Date.now();
+    state.mapLoaded = true;
+    state.panX=0; state.panY=0; state.zoom=1;
+    draw();
+    notify('✓ Plot loaded — ' + state.plotData.platArea.toFixed(0) + ' sq ft parcel');
+    updateOnlineStatus();
+    goStep(1);
+  }, 750);
+}
+
+// ════════════════════════════════════════════════
+// LAYER TOGGLES
+// ════════════════════════════════════════════════
+function toggleLayer(name) {
+  state.layers[name] = !state.layers[name];
+  const id = 't'+name.charAt(0).toUpperCase()+name.slice(1);
+  document.getElementById(id)?.classList.toggle('on', state.layers[name]);
+  draw();
+}
+
+// ════════════════════════════════════════════════
+// DRAW TOOLS
+// ════════════════════════════════════════════════
+function setDrawTool(t) {
+  state.drawTool = t; state.currentPoly = [];
+  document.querySelectorAll('.draw-tool').forEach(el => el.classList.remove('active'));
+  document.getElementById('dt-'+t)?.classList.add('active');
+  canvas.style.cursor = t==='select'?'grab':t==='eraser'?'cell':'crosshair';
+}
+function undoDraw() { state.drawings.pop(); draw(); }
+function clearDrawings() { if (confirm('Clear all drawings?')) { state.drawings=[]; state.currentPoly=[]; draw(); } }
+
+// ════════════════════════════════════════════════
+// MAP CONTROLS
+// ════════════════════════════════════════════════
+function zoom(f) { state.zoom*=f; draw(); }
+function resetView() { state.zoom=1; state.panX=0; state.panY=0; draw(); }
+function toggleFullscreen() {
+  document.fullscreenElement ? document.exitFullscreen() : canvas.parentElement.requestFullscreen();
+}
+
+// ════════════════════════════════════════════════
+// APPROVE MAP
+// ════════════════════════════════════════════════
+function approveMap() {
+  state.mapApproved = true;
+  notify('✓ Map approved — proceeding to services');
+  goStep(3);
+}
+
+// ════════════════════════════════════════════════
+// CALCULATE SERVICES
+// ════════════════════════════════════════════════
+function calculateServices() {
+  if (!state.plotData) { notify('Load a plot first'); return; }
+  const pd = state.plotData;
+  const totalArea    = pd.platArea;
+  const structArea   = pd.structures.reduce((a,s) => a + (s.w*s.h)/(pd.sc*pd.sc), 0);
+  const treeArea     = pd.trees.reduce((a,t) => a + Math.PI*((t.radius/pd.sc)**2), 0);
+  const mowableArea  = Math.max(0, totalArea - structArea - treeArea);
+  const perimeterFt  = 2*(pd.w+pd.d);
+  const hedgeLength  = pd.trees.reduce((a,t) => a + t.radius/pd.sc*2*Math.PI*0.3, 0);
+  const mowerW       = parseInt(document.getElementById('mowerWidth').value)/12;
+  const mowerSpeed   = parseFloat(document.getElementById('mowerSpeed').value);
+  const mowTime      = (mowableArea/(mowerW*mowerSpeed*5280/60)).toFixed(1);
+  const edgeTime     = (perimeterFt/200).toFixed(1);
+  const hedgeTime    = (hedgeLength/50).toFixed(1);
+
+  const services = [
+    { name:'Mow',           area:mowableArea.toFixed(0)+' sq ft', time:mowTime+' min',  notes:'Excludes structures + tree canopies', active:document.getElementById('svcMow').checked,      badge:'badge-green' },
+    { name:'Edge',          area:perimeterFt.toFixed(0)+' ln ft', time:edgeTime+' min', notes:'Full perimeter + obstacle borders',   active:document.getElementById('svcEdge').checked,     badge:'badge-green' },
+    { name:'Hedge Trim',    area:hedgeLength.toFixed(0)+' ln ft', time:hedgeTime+' min',notes:'Detected hedge rows + tree borders',  active:document.getElementById('svcHedge').checked,    badge:'badge-blue'  },
+    { name:'Fertilize',     area:totalArea.toFixed(0)+' sq ft',   time:'25 min',        notes:'Full coverage application',           active:document.getElementById('svcFertilize').checked, badge:'badge-warn'  },
+    { name:'Core Aerate',   area:mowableArea.toFixed(0)+' sq ft', time:'45 min',        notes:'8 in plug spacing',                   active:document.getElementById('svcAerate').checked,    badge:'badge-warn'  },
+    { name:'Overseed',      area:mowableArea.toFixed(0)+' sq ft', time:'20 min',        notes:'Post-aeration application',           active:document.getElementById('svcSeed').checked,      badge:'badge-warn'  },
+    { name:'Mulch Beds',    area:treeArea.toFixed(0)+' sq ft',    time:'35 min',        notes:'3 in depth, tree surround beds',      active:document.getElementById('svcMulch').checked,     badge:'badge-blue'  },
+    { name:'Irrigation',    area:totalArea.toFixed(0)+' sq ft',   time:'4.5 hrs',       notes:'Zone layout + head placement',        active:document.getElementById('svcIrrigate').checked,  badge:'badge-blue'  },
+    { name:'Full Landscaping',area:mowableArea.toFixed(0)+' sq ft',time:'8+ hrs',       notes:'Design, install, planting plan',      active:document.getElementById('svcLandscape').checked, badge:'badge-warn'  },
+  ].filter(s => s.active);
+
+  state.services = { services, mowableArea, totalArea, perimeterFt, mowTime, edgeTime, hedgeTime };
+
+  const totalTime = services.reduce((a,s) => { const t=parseFloat(s.time); return a+(isNaN(t)?0:t); }, 0);
+
+  document.getElementById('resultsGrid').innerHTML = `
+    <div class="result-card highlight">
+      <div class="result-label">Mowable Area</div>
+      <div class="result-value">${mowableArea.toFixed(0)}</div>
+      <div class="result-unit">sq ft</div>
+    </div>
+    <div class="result-card">
+      <div class="result-label">Total Parcel</div>
+      <div class="result-value">${totalArea.toFixed(0)}</div>
+      <div class="result-unit">sq ft</div>
+    </div>
+    <div class="result-card">
+      <div class="result-label">Perimeter</div>
+      <div class="result-value">${perimeterFt.toFixed(0)}</div>
+      <div class="result-unit">lin ft</div>
+    </div>
+    <div class="result-card">
+      <div class="result-label">Est. Total Time</div>
+      <div class="result-value">${totalTime<60?totalTime.toFixed(0)+'m':(totalTime/60).toFixed(1)+'h'}</div>
+      <div class="result-unit">${services.length} services</div>
+    </div>
+  `;
+
+  document.getElementById('serviceBody').innerHTML = services.map(s => `
+    <tr>
+      <td><strong>${s.name}</strong></td>
+      <td class="text-dim">${s.area}</td>
+      <td class="text-accent">${s.time}</td>
+      <td class="text-muted" style="font-size:10px">${s.notes}</td>
+      <td><span class="service-badge ${s.badge}">Included</span></td>
+    </tr>
+  `).join('');
+
+  generateReport();
+  notify('✓ Estimates calculated for ' + services.length + ' services');
+  goStep(4);
+}
+
+// ════════════════════════════════════════════════
+// REPORT
+// ════════════════════════════════════════════════
+function generateReport() {
+  const pd = state.plotData, sv = state.services;
+  if (!pd || !sv.services) return;
+  document.getElementById('reportContent').innerHTML = `
+    <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:var(--text);margin-bottom:10px">LandscapeIQ Site Report</div>
+    <div class="text-muted" style="margin-bottom:14px;font-size:11px">Generated: ${new Date().toLocaleString()}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px;font-size:11px">
+      <div><span class="text-muted">Parcel Area:</span> <span class="text-accent">${pd.platArea.toFixed(0)} sq ft</span></div>
+      <div><span class="text-muted">Mowable:</span> <span class="text-accent">${sv.mowableArea?.toFixed(0)} sq ft</span></div>
+      <div><span class="text-muted">Dimensions:</span> <span class="text-accent">${pd.w}×${pd.d} ft</span></div>
+      <div><span class="text-muted">Perimeter:</span> <span class="text-accent">${sv.perimeterFt?.toFixed(0)} ln ft</span></div>
+      <div><span class="text-muted">Trees:</span> <span class="text-accent">${pd.trees.length}</span></div>
+      <div><span class="text-muted">Structures:</span> <span class="text-accent">${pd.structures.length}</span></div>
+    </div>
+    <div style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:6px;color:var(--text);font-size:12px">Selected Services</div>
+    ${sv.services.map(s=>`<div style="padding:5px 0;border-bottom:1px solid var(--border-light);font-size:11px">${s.name} — <span class="text-accent">${s.time}</span> — ${s.area}</div>`).join('')}
+    <div style="margin-top:12px;font-size:10px;color:var(--text-muted);line-height:1.6">
+      Times are estimates. Actual field conditions, equipment efficiency, and obstacle density may vary.
+    </div>
+  `;
+}
+
+// ════════════════════════════════════════════════
+// RENDER (Landscape Visualization)
+// ════════════════════════════════════════════════
+function generateRender() {
+  if (!state.plotData) { notify('Load a plot first'); return; }
+  notify('Generating landscape render…');
+  const rc = document.getElementById('renderCanvas');
+  rc.style.display = 'block';
+  rc.width = rc.offsetWidth || 600;
+  rc.height = 300;
+  document.getElementById('renderPlaceholder').style.display = 'none';
+  const rctx = rc.getContext('2d');
+  const style = document.getElementById('renderStyle').value;
+  const season = document.getElementById('renderSeason').value;
+  const tod = document.getElementById('renderTime').value;
+  setTimeout(() => {
+    renderLandscapeArt(rctx, rc, state.plotData, style, season, tod);
+    notify('✓ Render complete');
+  }, 1000);
+}
+
+function renderLandscapeArt(rctx, rc, pd, style, season, tod) {
+  const W=rc.width, H=rc.height;
+  rctx.clearRect(0,0,W,H);
+
+  const skyPalette = {
+    'Golden Hour': ['#ff8c42','#ffd166','#f4a261'],
+    'Midday':      ['#48cae4','#90e0ef','#ade8f4'],
+    'Dusk':        ['#7b2d8b','#c9184a','#ff6b6b'],
+    'Overcast':    ['#8fa3b1','#bcd4de','#dce9ee']
+  };
+  const sc = skyPalette[tod] || skyPalette['Golden Hour'];
+  const skyGrad = rctx.createLinearGradient(0,0,0,H*0.45);
+  skyGrad.addColorStop(0, sc[0]); skyGrad.addColorStop(0.5, sc[1]); skyGrad.addColorStop(1, sc[2]);
+  rctx.fillStyle = skyGrad; rctx.fillRect(0,0,W,H*0.45);
+
+  const grassPalette = {
+    'Spring (lush)':  ['#2d6a4f','#40916c'],
+    'Summer (peak)':  ['#1b4332','#2d6a4f'],
+    'Fall (warm tones)': ['#6d4c19','#a07843'],
+    'Winter (dormant)':  ['#7a9e6e','#95b884']
+  };
+  const gc = grassPalette[season] || grassPalette['Summer (peak)'];
+  const gGrad = rctx.createLinearGradient(0,H*0.42,0,H);
+  gGrad.addColorStop(0, gc[0]); gGrad.addColorStop(1, gc[1]);
+  rctx.fillStyle=gGrad; rctx.fillRect(0,H*0.42,W,H*0.58);
+
+  for (let x=0; x<W; x+=W/16) {
+    rctx.fillStyle = x%(W/8)<W/16 ? 'rgba(255,255,255,0.03)':'rgba(0,0,0,0.05)';
+    rctx.fillRect(x,H*0.44,W/16,H*0.56);
+  }
+
+  // House
+  const hx=W*0.35,hy=H*0.25,hw=W*0.25,hh=H*0.22;
+  rctx.fillStyle='#e8dfd0'; rctx.fillRect(hx,hy,hw,hh);
+  rctx.fillStyle='#8a6a4a';
+  rctx.beginPath(); rctx.moveTo(hx-20,hy); rctx.lineTo(hx+hw/2,hy-H*0.1); rctx.lineTo(hx+hw+20,hy); rctx.closePath(); rctx.fill();
+  rctx.fillStyle='rgba(180,220,255,0.65)';
+  rctx.fillRect(hx+10,hy+12,hw*0.22,hh*0.28);
+  rctx.fillRect(hx+hw-hw*0.22-10,hy+12,hw*0.22,hh*0.28);
+
+  // Trees
+  const tPos = [{x:W*0.12,y:H*0.35,r:H*0.14},{x:W*0.85,y:H*0.32,r:H*0.12},{x:W*0.15,y:H*0.56,r:H*0.09},{x:W*0.78,y:H*0.55,r:H*0.11}];
+  const tc  = season.includes('Fall')?'#c8853a':season.includes('Winter')?'#556b3a':'#2d5a1b';
+  const tc2 = season.includes('Fall')?'#a0522d':season.includes('Winter')?'#3a4f2a':'#1a3d0e';
+  tPos.forEach(t => {
+    rctx.fillStyle='rgba(0,0,0,0.15)';
+    rctx.beginPath(); rctx.ellipse(t.x+8,t.y+t.r*0.9,t.r*0.9,t.r*0.3,0.3,0,Math.PI*2); rctx.fill();
+    rctx.fillStyle='#7a5534'; rctx.fillRect(t.x-4,t.y,8,t.r*0.6);
+    const tgrd=rctx.createRadialGradient(t.x,t.y-t.r*0.1,4,t.x,t.y,t.r);
+    tgrd.addColorStop(0,tc); tgrd.addColorStop(0.7,tc2); tgrd.addColorStop(1,'rgba(0,0,0,0.08)');
+    rctx.fillStyle=tgrd;
+    rctx.beginPath(); rctx.arc(t.x,t.y,t.r,0,Math.PI*2); rctx.fill();
+  });
+
+  state.catalogueSelections.forEach((item,i) => {
+    const ix = W*0.08 + i*(W*0.11), iy = H*0.7;
+    rctx.fillStyle='rgba(45,106,79,0.12)';
+    rctx.beginPath(); rctx.arc(ix,iy,16,0,Math.PI*2); rctx.fill();
+    rctx.font='14px serif'; rctx.textAlign='center';
+    rctx.fillText(item.icon||'🌿',ix,iy+5);
+  });
+
+  if (style==='Aerial Blueprint') {
+    rctx.fillStyle='rgba(0,40,100,0.65)'; rctx.fillRect(0,0,W,H);
+    rctx.strokeStyle='rgba(100,180,255,0.7)'; rctx.lineWidth=1;
+    for(let x=0;x<W;x+=40){rctx.beginPath();rctx.moveTo(x,0);rctx.lineTo(x,H);rctx.stroke();}
+    for(let y=0;y<H;y+=40){rctx.beginPath();rctx.moveTo(0,y);rctx.lineTo(W,y);rctx.stroke();}
+    rctx.strokeStyle='#60aaff'; rctx.lineWidth=2; rctx.strokeRect(hx,hy,hw,hh);
+  } else if (style==='Watercolor Plan') {
+    rctx.fillStyle='rgba(255,248,240,0.2)';
+    for(let i=0;i<8;i++){rctx.beginPath();rctx.arc(Math.random()*W,Math.random()*H,Math.random()*60+20,0,Math.PI*2);rctx.fill();}
+  } else if (style==='3D Isometric') {
+    rctx.fillStyle='rgba(10,20,40,0.35)'; rctx.fillRect(0,0,W,H);
+  }
+
+  // Badge
+  rctx.fillStyle='rgba(255,255,255,0.88)';
+  rctx.roundRect?.(10,10,240,34,4) ?? rctx.fillRect(10,10,240,34);
+  rctx.fill?.();
+  rctx.fillStyle=rctx.fillStyle; // flush
+  rctx.fillStyle='rgba(255,255,255,0.88)'; rctx.fillRect(10,10,240,34);
+  rctx.fillStyle='#2d6a4f'; rctx.font='600 10px "DM Mono"'; rctx.textAlign='left';
+  rctx.fillText(`${style} • ${season}`, 18, 25);
+  rctx.fillStyle='#40916c'; rctx.font='400 9px "DM Mono"';
+  rctx.fillText(`${tod} • LandscapeIQ`, 18, 38);
+
+  document.getElementById('renderSelections').textContent = `${style} | ${season} | ${tod}`;
+}
+
+// ════════════════════════════════════════════════
+// CATALOGUE
+// ════════════════════════════════════════════════
+const CATALOGUE = [
+  {id:1,cat:'foliage', icon:'🌿',name:'Ornamental Grass',  desc:'Low-maintenance, drought tolerant. Grows 2-4 ft.',         tags:['full sun','drought'],    price:'$18/ea'},
+  {id:2,cat:'foliage', icon:'🌺',name:'Knockout Rose',     desc:'Disease-resistant, blooms spring through fall.',          tags:['full sun','moderate'],   price:'$35/ea'},
+  {id:3,cat:'foliage', icon:'🌸',name:'Texas Sage',        desc:'Purple flowering shrub, xeriscape-friendly.',             tags:['drought','full sun'],    price:'$22/ea'},
+  {id:4,cat:'foliage', icon:'🌻',name:'Black-eyed Susan',  desc:'Perennial wildflower, attracts pollinators.',             tags:['full sun','native'],     price:'$12/ea'},
+  {id:5,cat:'foliage', icon:'🪴',name:'Agave',             desc:'Architectural succulent, minimal water.',                 tags:['drought','accent'],      price:'$45/ea'},
+  {id:6,cat:'trees',   icon:'🌳',name:'Live Oak',          desc:'Hardy evergreen, 40-60 ft spread at maturity.',          tags:['shade','native'],        price:'$250/ea'},
+  {id:7,cat:'trees',   icon:'🌲',name:'Italian Cypress',   desc:'Columnar accent, 30+ ft, minimal footprint.',            tags:['accent','privacy'],      price:'$180/ea'},
+  {id:8,cat:'trees',   icon:'🍑',name:'Mexican Plum',      desc:'Native ornamental with spring bloom, 15-20 ft.',         tags:['native','flowering'],    price:'$120/ea'},
+  {id:9,cat:'hardscape',icon:'🪨',name:'River Rock Bed',   desc:'Decorative aggregate, 3-4 in coverage.',                 tags:['low maint','border'],    price:'$8/sq ft'},
+  {id:10,cat:'hardscape',icon:'🧱',name:'Flagstone Path',  desc:'Natural limestone, irregular pattern.',                  tags:['walkway','natural'],     price:'$22/sq ft'},
+  {id:11,cat:'hardscape',icon:'⬛',name:'Decomp. Granite', desc:'Permeable, weed-suppressing ground cover.',              tags:['permeable','xeriscape'], price:'$4/sq ft'},
+  {id:12,cat:'waterworks',icon:'⛲',name:'Bubbling Fountain',desc:'Self-contained, 18 in diameter, solar option.',        tags:['focal','low water'],     price:'$320'},
+  {id:13,cat:'waterworks',icon:'🏞️',name:'Dry Creek Bed',  desc:'Ornamental drainage with native rock.',                  tags:['drainage','natural'],    price:'$18/ln ft'},
+  {id:14,cat:'waterworks',icon:'💧',name:'Drip Irrigation', desc:'Zone-by-zone drip for beds and shrubs.',                tags:['efficient','automated'], price:'$280/zone'},
+  {id:15,cat:'lighting',icon:'💡',name:'Path Lights',      desc:'Solar LED stake lights, warm white, IP65.',              tags:['solar','pathway'],       price:'$28/ea'},
+  {id:16,cat:'lighting',icon:'🔦',name:'Uplights',         desc:'Low-voltage 5W spotlight for trees/walls.',              tags:['accent','nighttime'],    price:'$45/ea'},
+  {id:17,cat:'lighting',icon:'🌙',name:'Moon Lighting',    desc:'High-mount downlight mimics natural moonlight.',         tags:['ambient','high mount'],  price:'$120/ea'},
+];
+
+let catFilter = 'all';
+function openCatalogue() { document.getElementById('catalogueModal').classList.add('open'); renderCatalogue(); }
+function closeCatalogue() { document.getElementById('catalogueModal').classList.remove('open'); }
+function filterCat(cat) {
+  catFilter = cat;
+  const order = ['all','foliage','trees','hardscape','waterworks','lighting'];
+  document.querySelectorAll('#catTabs .tab').forEach((t,i) => t.classList.toggle('active', i===order.indexOf(cat)));
+  renderCatalogue();
+}
+function renderCatalogue() {
+  const items = catFilter==='all' ? CATALOGUE : CATALOGUE.filter(i=>i.cat===catFilter);
+  document.getElementById('catalogueGrid').innerHTML = items.map(item => `
+    <div class="cat-card ${state.catalogueSelections.find(s=>s.id===item.id)?'selected':''}" onclick="toggleCatItem(${item.id})">
+      <div class="cat-icon">${item.icon}</div>
+      <div class="cat-name">${item.name}</div>
+      <div class="cat-desc">${item.desc}</div>
+      <div class="cat-meta">
+        ${item.tags.map(t=>`<span class="cat-tag">${t}</span>`).join('')}
+        <span class="cat-tag" style="color:var(--accent);border-color:var(--accent-mid)">${item.price}</span>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('catSelCount').textContent = state.catalogueSelections.length;
+}
+function toggleCatItem(id) {
+  const item = CATALOGUE.find(i=>i.id===id);
+  const idx  = state.catalogueSelections.findIndex(s=>s.id===id);
+  if (idx>=0) state.catalogueSelections.splice(idx,1); else state.catalogueSelections.push(item);
+  renderCatalogue();
+}
+function confirmCatalogueSelection() {
+  closeCatalogue();
+  const names = state.catalogueSelections.map(i=>i.icon+' '+i.name).join(', ');
+  document.getElementById('selectedItems').textContent = names || 'No items selected';
+  notify('✓ '+state.catalogueSelections.length+' catalogue items added to plan');
+}
+
+// ════════════════════════════════════════════════
+// UPLOADS
+// ════════════════════════════════════════════════
+document.getElementById('useLidar').addEventListener('change', function() {
+  document.getElementById('lidarUpload').style.display = this.checked?'block':'none';
+});
+document.getElementById('usePhoto').addEventListener('change', function() {
+  document.getElementById('photoUpload').style.display = this.checked?'block':'none';
+});
+function handlePhotoUpload(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => { state.uploadedPhoto=img; draw(); notify('✓ Photo overlay added'); };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function handleFieldPhoto(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    state.fieldPhotos.push(ev.target.result);
+    const list = document.getElementById('fieldPhotoList');
+    const img  = document.createElement('img');
+    img.src = ev.target.result;
+    img.style.cssText = 'width:50px;height:50px;object-fit:cover;border-radius:4px;border:1px solid var(--border)';
+    list.appendChild(img);
+    notify('✓ Field photo added');
+  };
+  reader.readAsDataURL(file);
+}
+
+// ════════════════════════════════════════════════
+// EXPORT
+// ════════════════════════════════════════════════
+function exportJSON() {
+  const data = {
+    generated: new Date().toISOString(),
+    plotId: state.plotId,
+    plot: state.plotData ? { platArea: state.plotData.platArea, dimensions: { w: state.plotData.w, d: state.plotData.d }, lat: state.plotData.lat, lng: state.plotData.lng } : null,
+    services: state.services.services || [],
+    drawings: state.drawings.length,
+    catalogue: state.catalogueSelections.map(i=>({name:i.name,cat:i.cat,price:i.price})),
+    notes: document.getElementById('boundaryNotes')?.value || '',
+  };
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='landscapeiq-report.json'; a.click();
+  notify('✓ JSON exported');
+}
+function exportImage() {
+  const link = document.createElement('a');
+  link.download = 'landscapeiq-map.png';
+  link.href = canvas.toDataURL();
+  link.click();
+  notify('✓ Map image saved');
+}
+function exportPDF() { notify('PDF export — integrate with your PDF service in production'); }
+
+// ════════════════════════════════════════════════
+// TABS
+// ════════════════════════════════════════════════
+function switchTab(name) {
+  ['services','render','report'].forEach(t => {
+    document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).style.display = t===name?'block':'none';
+  });
+  document.querySelectorAll('.results-panel .tab').forEach((t,i) => {
+    t.classList.toggle('active', ['services','render','report'][i]===name);
+  });
+}
+
+// ════════════════════════════════════════════════
+// API MODAL
+// ════════════════════════════════════════════════
+function openApiModal() {
+  document.getElementById('apiBaseUrl').value = API_CONFIG.baseUrl;
+  document.getElementById('apiOrgId').value   = API_CONFIG.orgId;
+  updateApiStatus();
+  document.getElementById('apiModal').classList.add('open');
+  document.getElementById('apiStatTiles').textContent = 'Cached via SW';
+}
+function closeApiModal() { document.getElementById('apiModal').classList.remove('open'); }
+
+// ════════════════════════════════════════════════
+// NOTIFICATION TOAST
+// ════════════════════════════════════════════════
+let notifTimer;
+function notify(msg) {
+  const el = document.getElementById('notif');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(notifTimer);
+  notifTimer = setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+// ════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════
+draw();
+goStep(0);
+
+// Try loading offline data if available
+(async function tryRestoreOffline() {
+  try {
+    const db = await openLocalDB();
+    const cached = await dbGet(db, 'cached_plot');
+    if (cached && !navigator.onLine) {
+      // Could restore plot from cache here in a full implementation
+      console.log('[LIQ] Offline cached data available');
+    }
+  } catch {}
+})();
+
+// Handle URL params (e.g. ?action=new from shortcut)
+const params = new URLSearchParams(location.search);
+if (params.get('action') === 'new') { goStep(0); }
+</script>
+</body>
+</html>
