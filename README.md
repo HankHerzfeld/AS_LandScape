@@ -165,3 +165,33 @@ Just point your tile requests at your provider and they will be cached automatic
 - [ ] (Optional) Integrate real map tile provider (Mapbox, OSM)
 - [ ] (Optional) Add push notification VAPID keys
 - [ ] Test offline behavior: load plot, kill network, reopen app
+
+---
+
+## Local API in this repo
+
+This repository includes a minimal API under `api/` that matches the app's sync contract.
+
+### Start the API
+
+```bash
+cd api
+cp .env.example .env
+npm install
+npm run dev
+```
+
+### Configure in LandscapeIQ
+
+Open the app, click the gear icon, then set:
+
+- API Base URL: `http://localhost:8787`
+- API Key: value from `API_KEY` in `api/.env`
+- Organization / Team ID: optional (required only if `REQUIRE_ORG_ID=true`)
+
+### Endpoints provided
+
+- `GET /health`
+- `POST /plots`
+- `GET /plots` (debug)
+- `GET /plots/:id` (debug)
