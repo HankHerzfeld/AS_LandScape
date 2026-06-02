@@ -1160,14 +1160,14 @@ function updateOnlineStatus() {
   const dot   = document.getElementById('onlineDot');
   const label = document.getElementById('onlineLabel');
   const banner = document.getElementById('offlineMapBanner');
+  const mapLoaded = !!(typeof state !== 'undefined' && state && state.mapLoaded);
   dot.classList.toggle('offline', !online);
   label.textContent = online ? 'Online' : 'Offline';
-  banner.classList.toggle('show', !online && state.mapLoaded);
-  if (online && pendingSyncs.length > 0) flushPendingSyncs();
+  banner.classList.toggle('show', !online && mapLoaded);
+  if (online && Array.isArray(pendingSyncs) && pendingSyncs.length > 0) flushPendingSyncs();
 }
 window.addEventListener('online',  updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
-updateOnlineStatus();
 
 // ════════════════════════════════════════════════
 // API SYNC ENGINE
@@ -2187,6 +2187,7 @@ function notify(msg) {
 // ════════════════════════════════════════════════
 draw();
 goStep(0);
+updateOnlineStatus();
 
 // Try loading offline data if available
 (async function tryRestoreOffline() {

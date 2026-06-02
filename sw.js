@@ -3,7 +3,7 @@
 // Handles offline caching + background API sync
 // ════════════════════════════════════════════════
 
-const CACHE_NAME = 'landscapeiq-v1';
+const CACHE_NAME = 'landscapeiq-v2';
 const API_SYNC_TAG = 'landscapeiq-sync';
 
 // Core assets to cache immediately on install
@@ -56,10 +56,16 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Navigation → serve app shell from cache
+  // Navigation → network-first so new deployments are picked up immediately
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      caches.match('./index.html').then(r => r || fetch(event.request))
+      fetch(event.request)
+        .then(response => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put('./index.html', copy));
+          return response;
+        })
+        .catch(() => caches.match('./index.html'))
     );
     return;
   }
