@@ -189,6 +189,18 @@ Open the app, click the gear icon, then set:
 - API Key: value from `API_KEY` in `api/.env`
 - Organization / Team ID: optional (required only if `REQUIRE_ORG_ID=true`)
 
+## Azure deployment values (frontend on Static Web Apps)
+
+When your app is hosted on Azure Static Web Apps, do not use localhost in the API modal.
+
+- API Base URL: your deployed API root, e.g. `https://your-api-name.azurewebsites.net`
+- API Key: the `API_KEY` environment value configured on your API host
+- Organization / Team ID: leave blank unless your API enforces it (`REQUIRE_ORG_ID=true`)
+
+For CORS, include your Static Web App origin in `ALLOWED_ORIGINS` on the API side, for example:
+
+`ALLOWED_ORIGINS=http://localhost:8080,http://127.0.0.1:8080,https://ambitious-hill-0d2525c10.7.azurestaticapps.net`
+
 ### Endpoints provided
 
 - `GET /health`

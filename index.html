@@ -1097,6 +1097,7 @@ input[type=range] {
       <div class="field"><label>API Base URL</label><input type="text" id="apiBaseUrl" placeholder="https://api.yourservice.com/v1" /></div>
       <div class="field"><label>API Key</label><input type="password" id="apiKey" placeholder="sk-…" /></div>
       <div class="field"><label>Organization / Team ID (optional)</label><input type="text" id="apiOrgId" placeholder="org_xxxxxx" /></div>
+      <div id="apiHostHint" style="display:none;background:var(--warn-bg);border:1px solid #fcd34d;border-radius:var(--radius-sm);padding:8px 10px;margin-bottom:10px;font-size:10px;color:var(--warn)"></div>
       <div class="divider"></div>
       <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;margin-bottom:10px">Connection Status</div>
       <div id="apiStatusList">
@@ -1175,6 +1176,36 @@ window.addEventListener('offline', updateOnlineStatus);
 const API_CONFIG = { baseUrl: '', apiKey: '', orgId: '', lastSync: null };
 const pendingSyncs = [];
 let syncInProgress = false;
+
+function normalizeBaseUrl(url) {
+  return (url || '').trim().replace(/\/+$/, '');
+}
+
+function isHostedApp() {
+  const host = location.hostname || '';
+  return host !== 'localhost' && host !== '127.0.0.1';
+}
+
+function isLocalApiUrl(url) {
+  try {
+    const u = new URL(url);
+    return u.hostname === 'localhost' || u.hostname === '127.0.0.1';
+  } catch {
+    return false;
+  }
+}
+
+function renderApiHostHint() {
+  const el = document.getElementById('apiHostHint');
+  if (!el) return;
+  if (isHostedApp() && isLocalApiUrl(API_CONFIG.baseUrl)) {
+    el.style.display = 'block';
+    el.textContent = 'This site is hosted, so localhost API URLs will fail for other users/devices. Use a public HTTPS API URL and add this site origin to ALLOWED_ORIGINS.';
+  } else {
+    el.style.display = 'none';
+    el.textContent = '';
+  }
+}
 
 function getApiHeaders() {
   return {
@@ -1264,7 +1295,7 @@ async function flushPendingSyncs() {
 }
 
 async function testApiConnection() {
-  const url = document.getElementById('apiBaseUrl').value.trim();
+  const url = normalizeBaseUrl(document.getElementById('apiBaseUrl').value);
   const key  = document.getElementById('apiKey').value.trim();
   const org  = document.getElementById('apiOrgId').value.trim();
 
@@ -1274,6 +1305,7 @@ async function testApiConnection() {
   API_CONFIG.apiKey  = key;
   API_CONFIG.orgId   = org;
   localStorage.setItem('liq_api', JSON.stringify({ baseUrl: url, orgId: org }));
+  renderApiHostHint();
 
   document.getElementById('apiStatEndpoint').textContent = 'Testing…';
   document.getElementById('apiStatAuth').textContent = '…';
@@ -1295,6 +1327,7 @@ function updateApiStatus() {
     ? new Date(API_CONFIG.lastSync).toLocaleString()
     : 'Never';
   document.getElementById('apiStatQueue').textContent = pendingSyncs.length + ' pending';
+  renderApiHostHint();
 }
 
 async function downloadMapForOffline() {
@@ -1345,7 +1378,7 @@ function dbGet(db, key) {
     const saved = localStorage.getItem('liq_api');
     if (saved) {
       const cfg = JSON.parse(saved);
-      API_CONFIG.baseUrl = cfg.baseUrl || '';
+      API_CONFIG.baseUrl = normalizeBaseUrl(cfg.baseUrl || '');
       API_CONFIG.orgId   = cfg.orgId || '';
       if (document.getElementById('apiBaseUrl')) document.getElementById('apiBaseUrl').value = API_CONFIG.baseUrl;
       if (document.getElementById('apiOrgId')) document.getElementById('apiOrgId').value = API_CONFIG.orgId;
@@ -2163,9 +2196,10 @@ function switchTab(name) {
 // API MODAL
 // ════════════════════════════════════════════════
 function openApiModal() {
-  document.getElementById('apiBaseUrl').value = API_CONFIG.baseUrl;
+  document.getElementById('apiBaseUrl').value = normalizeBaseUrl(API_CONFIG.baseUrl);
   document.getElementById('apiOrgId').value   = API_CONFIG.orgId;
   updateApiStatus();
+  renderApiHostHint();
   document.getElementById('apiModal').classList.add('open');
   document.getElementById('apiStatTiles').textContent = 'Cached via SW';
 }
