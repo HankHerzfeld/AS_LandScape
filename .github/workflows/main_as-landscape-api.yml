@@ -18,20 +18,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Java version
-        uses: actions/setup-java@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          java-version: '8'
-          distribution: 'microsoft'
+          node-version: '20'
 
-      - name: Build with Maven
-        run: mvn clean install
+      - name: Install API dependencies
+        run: npm ci
+        working-directory: ./api
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
-          name: java-app
-          path: '${{ github.workspace }}/target/*.jar'
+          name: node-app
+          path: '${{ github.workspace }}/api'
 
   deploy:
     runs-on: ubuntu-latest
@@ -44,7 +44,7 @@ jobs:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: java-app
+          name: node-app
       
       - name: Login to Azure
         uses: azure/login@v2
@@ -59,5 +59,5 @@ jobs:
         with:
           app-name: 'as-landscape-api'
           slot-name: 'Production'
-          package: '*.jar'
+          package: 'api'
           
