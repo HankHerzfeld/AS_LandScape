@@ -27,11 +27,17 @@ jobs:
         run: npm ci
         working-directory: ./api
 
+      - name: Build API (if present)
+        run: npm run build --if-present
+        working-directory: ./api
+
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: '${{ github.workspace }}/api'
+          path: |
+            ${{ github.workspace }}/api
+            !${{ github.workspace }}/api/node_modules/**
 
   deploy:
     runs-on: ubuntu-latest
@@ -60,4 +66,3 @@ jobs:
           app-name: 'as-landscape-api'
           slot-name: 'Production'
           package: 'api'
-          
